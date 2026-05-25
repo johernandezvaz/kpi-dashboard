@@ -1,0 +1,39 @@
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  gap: 0.1rem;
+}
+
+.caption {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-cell-text);
+  opacity: 0.75;
+}
+
+.value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-cell-text);
+  line-height: 1;
+}
+
+/* Traffic-light backgrounds */
+.green  { background-color: var(--color-green); }
+.yellow { background-color: var(--color-yellow); }
+.red    { background-color: var(--color-red); }
+.neutral {
+  background-color: var(--color-neutral);
+  border: 1px solid var(--color-border);
+}
+.neutral .value,
+.neutral .caption {
+  color: var(--color-text-muted);
+}

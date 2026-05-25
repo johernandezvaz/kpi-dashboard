@@ -1,0 +1,93 @@
+.wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 700px;
+  font-family: inherit;
+}
+
+/* Column headers */
+.th {
+  background-color: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  border-bottom: 2px solid var(--color-border-strong);
+  border-right: 1px solid var(--color-grid-border);
+  white-space: nowrap;
+}
+
+.areaHeader {
+  text-align: left;
+  padding-left: 1rem;
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--color-surface-2);
+}
+
+/* Area rows */
+.row:nth-child(even) .areaCell {
+  background-color: var(--color-surface-alt);
+}
+
+.areaCell {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 0 1rem;
+  border-right: 2px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-grid-border);
+  white-space: nowrap;
+  background-color: var(--color-surface);
+  position: sticky;
+  left: 0;
+  /* Ensure area cells stack above data cells on scroll */
+  z-index: 1;
+  height: 38px;
+  vertical-align: middle;
+}
+
+/* Total row */
+.totalRow {
+  border-top: 3px solid var(--color-border-strong);
+}
+
+.totalLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--color-surface-2) !important;
+}
+
+.totalCell {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-cell-text);
+  padding: 0.45rem 0.35rem;
+  border: 1px solid var(--color-grid-border);
+  height: 38px;
+}
+
+/* Traffic-light for total row */
+.green  { background-color: var(--color-green); }
+.yellow { background-color: var(--color-yellow); }
+.red    { background-color: var(--color-red); }
+.neutralTotal {
+  background-color: var(--color-neutral);
+}
