@@ -1,7 +1,14 @@
 "use client";
 
-import styles from "./PeriodSelector.module.css";
-import type { Plant, Month } from "@/lib/mockData";
+export interface Plant {
+  id:    string;
+  label: string;
+}
+
+export interface Month {
+  value: number;
+  label: string;
+}
 
 interface PeriodSelectorProps {
   plants: Plant[];
@@ -15,6 +22,14 @@ interface PeriodSelectorProps {
   onMonthChange: (month: number) => void;
 }
 
+const selectClass =
+  "appearance-none bg-white/10 border border-white/25 rounded-md " +
+  "text-white text-sm font-medium py-[0.35rem] pl-[0.65rem] pr-8 cursor-pointer " +
+  "bg-[var(--select-chevron)] bg-no-repeat [background-position:right_0.55rem_center] " +
+  "hover:border-white/50 " +
+  "focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30 " +
+  "transition-[border-color,box-shadow] duration-150";
+
 export default function PeriodSelector({
   plants,
   years,
@@ -27,51 +42,51 @@ export default function PeriodSelector({
   onMonthChange,
 }: PeriodSelectorProps) {
   return (
-    <div className={styles.wrapper} role="group" aria-label="Period selector">
-      <label className={styles.field}>
-        <span className={styles.label}>Plant</span>
+    <div className="flex items-center gap-5 flex-wrap" role="group" aria-label="Period selector">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-white/60 whitespace-nowrap">
+          Plant
+        </span>
         <select
           id="select-plant"
-          className={styles.select}
+          className={selectClass}
           value={selectedPlant}
           onChange={(e) => onPlantChange(e.target.value)}
         >
           {plants.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label}
-            </option>
+            <option key={p.id} value={p.id} className="text-brand-navy bg-white">{p.label}</option>
           ))}
         </select>
       </label>
 
-      <label className={styles.field}>
-        <span className={styles.label}>Year</span>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-white/60 whitespace-nowrap">
+          Year
+        </span>
         <select
           id="select-year"
-          className={styles.select}
+          className={selectClass}
           value={selectedYear}
           onChange={(e) => onYearChange(Number(e.target.value))}
         >
           {years.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
+            <option key={y} value={y} className="text-brand-navy bg-white">{y}</option>
           ))}
         </select>
       </label>
 
-      <label className={styles.field}>
-        <span className={styles.label}>Month</span>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-white/60 whitespace-nowrap">
+          Month
+        </span>
         <select
           id="select-month"
-          className={styles.select}
+          className={selectClass}
           value={selectedMonth}
           onChange={(e) => onMonthChange(Number(e.target.value))}
         >
           {months.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
+            <option key={m.value} value={m.value} className="text-brand-navy bg-white">{m.label}</option>
           ))}
         </select>
       </label>

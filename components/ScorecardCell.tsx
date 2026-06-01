@@ -1,16 +1,34 @@
 "use client";
 
-import styles from "./ScorecardCell.module.css";
 import { getColor } from "@/lib/scorecard";
-import type { ScorecardCell as ScorecardCellType } from "@/lib/scorecard";
+import type { ScorecardCell as ScorecardCellType, ColorLabel } from "@/lib/scorecard";
 
 interface ScorecardCellProps {
   cell: ScorecardCellType | null;
+  onClick?: () => void;
 }
 
-export default function ScorecardCell({ cell }: ScorecardCellProps) {
+const bgMap: Record<ColorLabel, string> = {
+  red:     "bg-scorecard-red",
+  yellow:  "bg-scorecard-yellow",
+  green:   "bg-scorecard-green",
+  neutral: "bg-scorecard-neutral",
+};
+
+const baseCellClass =
+  "text-center align-middle text-[0.8rem] font-semibold whitespace-nowrap " +
+  "border border-brand-navy/20 min-w-[68px] h-[38px] " +
+  "transition-[filter] duration-100 hover:brightness-[0.93] " +
+  "py-[0.45rem] px-[0.35rem]";
+
+export default function ScorecardCell({ cell, onClick }: ScorecardCellProps) {
   if (!cell || cell.ratio === null) {
-    return <td className={`${styles.cell} ${styles.neutral}`} aria-label="No data" />;
+    return (
+      <td
+        className={`${baseCellClass} bg-scorecard-neutral`}
+        aria-label="No data"
+      />
+    );
   }
 
   const color = getColor(cell.ratio);
@@ -18,9 +36,10 @@ export default function ScorecardCell({ cell }: ScorecardCellProps) {
 
   return (
     <td
-      className={`${styles.cell} ${styles[color]}`}
-      aria-label={`${cell.areaCode} ${cell.processCode}: ${label}`}
-      title={`Score: ${cell.totalScore} / ${2 * (cell.metricsCount ?? 0)} (${cell.metricsCount} metrics)`}
+      className={`${baseCellClass} text-scorecard-cell-text ${bgMap[color]} cursor-pointer`}
+      aria-label={`${cell.areaCode} ${cell.processCode}: ${label} — click to view metrics`}
+      title={`Score: ${cell.totalScore} / ${2 * (cell.metricsCount ?? 0)} (${cell.metricsCount} metrics) — click to expand`}
+      onClick={onClick}
     >
       {label}
     </td>

@@ -1,76 +1,25 @@
-/* ============================================================
-   globals.css
-   Design tokens for the CDI DTC KPI Dashboard.
-   All theme values live here — change once, applies everywhere.
-   ============================================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* -----------------------------------------------------------
-   CSS Custom Properties (Design Tokens)
-   ----------------------------------------------------------- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  /* --- Typography --- */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-
-  /* --- Surface colors (light, neutral dark-ish theme) --- */
-  --color-bg:          #f0f2f5;
-  --color-surface:     #ffffff;
-  --color-surface-2:   #f8f9fb;
-  --color-surface-alt: #fafbfc;
-
-  /* --- Text --- */
-  --color-text:        #1a1a2e;
-  --color-text-muted:  #6b7280;
-
-  /* --- Borders --- */
-  --color-border:        #e2e6ea;
-  --color-border-strong: #c8cfd8;
-  --color-grid-border:   #e2e6ea;
-
-  /* --- Accent (for focus rings etc.) --- */
-  --color-accent:       #3b6ff0;
-  --color-accent-alpha: rgba(59, 111, 240, 0.18);
-
-  /* -----------------------------------------------------------
-     Traffic-light palette
-     These are the ONLY place traffic-light colors are defined.
-     They map to the THRESHOLDS in lib/scorecard.ts.
-     ----------------------------------------------------------- */
-  --color-green:     #4caf72;   /* >= 75% */
-  --color-yellow:    #f5c518;   /* 60–74.9% */
-  --color-red:       #e05252;   /* < 60% */
-  --color-neutral:   #f0f2f5;   /* no data */
-
-  /* Text on colored cells — dark for contrast on all three colors */
-  --color-cell-text: #1a1a1a;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
-/* -----------------------------------------------------------
-   Reset & base
-   ----------------------------------------------------------- */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #dfe1e7;
+    color: #1a1a2e;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  font-family: var(--font-sans);
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Accessible focus for keyboard navigation */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  :focus-visible {
+    outline: 2px solid #1d559a;
+    outline-offset: 2px;
+  }
 }
