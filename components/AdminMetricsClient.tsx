@@ -135,6 +135,106 @@ export default function AdminMetricsClient({
 
   const rowRef = useRef<HTMLTableRowElement>(null);
 
+  const MONTH_KEYS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"] as const;
+  const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  type MonthKey = typeof MONTH_KEYS[number];
+  interface ValidityState { [k: string]: boolean }
+
+  const clampYear = (y: number) => Math.min(2027, Math.max(2020, y));
+  const currentYear = clampYear(new Date().getFullYear());
+
+  const [validityMetric, setValidityMetric] = useState<DbMetric | null>(null);
+  const [validityYear, setValidityYear] = useState<number>(currentYear);
+  const [validityChecks, setValidityChecks] = useState<ValidityState>(
+    Object.fromEntries(MONTH_KEYS.map((k) => [k, false]))
+  );
+  const [validityLoading, setValidityLoading] = useState(false);
+  const [validitySaving, setValiditySaving] = useState(false);
+  const [validityCopyMsg, setValidityCopyMsg] = useState<string | null>(null);
+
+  const fetchValidity = async (metricId: number, year: number) => {
+    setValidityLoading(true);
+    setValidityCopyMsg(null);
+    try {
+      const res = await fetch(`/api/admin/metric-validity?metricId=${metricId}&year=${year}`);
+      const data = await res.json();
+      if (res.ok) {
+        setValidityChecks(Object.fromEntries(MONTH_KEYS.map((k) => [k, !!data[k]])));
+      } else {
+        setValidityChecks(Object.fromEntries(MONTH_KEYS.map((k) => [k, false])));
+      }
+    } catch {
+      setValidityChecks(Object.fromEntries(MONTH_KEYS.map((k) => [k, false])));
+    } finally {
+      setValidityLoading(false);
+    }
+  };
+
+  const openValidityDrawer = (metric: DbMetric) => {
+    setValidityMetric(metric);
+    setValidityYear(currentYear);
+    setValidityCopyMsg(null);
+    fetchValidity(metric.metric_id, currentYear);
+  };
+
+  const handleValidityYearChange = (year: number) => {
+    setValidityYear(year);
+    if (validityMetric) fetchValidity(validityMetric.metric_id, year);
+  };
+
+  const handleSelectAllMonths = () => {
+    setValidityChecks(Object.fromEntries(MONTH_KEYS.map((k) => [k, true])));
+  };
+
+  const handleCopyFromPrevYear = async () => {
+    if (!validityMetric) return;
+    const prevYear = validityYear - 1;
+    if (prevYear < 2020) {
+      setValidityCopyMsg(`No data from ${prevYear} to copy.`);
+      return;
+    }
+    setValidityLoading(true);
+    setValidityCopyMsg(null);
+    try {
+      const res = await fetch(`/api/admin/metric-validity?metricId=${validityMetric.metric_id}&year=${prevYear}`);
+      const data = await res.json();
+      if (res.ok) {
+        const allFalse = MONTH_KEYS.every((k) => !data[k]);
+        if (allFalse) {
+          setValidityCopyMsg(`No data from ${prevYear} to copy.`);
+        } else {
+          setValidityChecks(Object.fromEntries(MONTH_KEYS.map((k) => [k, !!data[k]])));
+        }
+      } else {
+        setValidityCopyMsg(`No data from ${prevYear} to copy.`);
+      }
+    } catch {
+      setValidityCopyMsg(`No data from ${prevYear} to copy.`);
+    } finally {
+      setValidityLoading(false);
+    }
+  };
+
+  const handleValiditySave = async () => {
+    if (!validityMetric || validitySaving) return;
+    setValiditySaving(true);
+    try {
+      const res = await fetch("/api/admin/metric-validity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metricId: validityMetric.metric_id, year: validityYear, ...validityChecks }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save.");
+      setValidityMetric(null);
+      showSuccessNotification(`Availability updated for ${validityMetric.name} in ${validityYear}.`);
+    } catch (err: any) {
+      setError(err.message || "Failed to save availability.");
+    } finally {
+      setValiditySaving(false);
+    }
+  };
+
   const getEligibleOwners = (plantId: number) => {
     return users.filter((u) => {
       if (u.is_admin && u.admin_plant_id === null) return true;
@@ -784,28 +884,54 @@ export default function AdminMetricsClient({
                       </td>
 
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                        {isAuthorizedToEdit && (
-                          <button
-                            type="button"
-                            onClick={() => handleRowDoubleClick(metric)}
-                            title="Edit metric"
-                            className="p-1 text-brand-blue hover:bg-brand-blue/10 rounded-full transition-colors"
-                          >
-                            <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                        <div className="flex items-center justify-center gap-1">
+                          {isAuthorizedToEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleRowDoubleClick(metric)}
+                              title="Edit metric"
+                              className="p-1 text-brand-blue hover:bg-brand-blue/10 rounded-full transition-colors"
                             >
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
-                        )}
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                          )}
+                          {!isSuperadmin && metric.plant_id === currentUser.adminPlantId && (
+                            <button
+                              type="button"
+                              onClick={() => openValidityDrawer(metric)}
+                              title="Configure month availability"
+                              className="p-1 text-app-muted hover:text-brand-blue hover:bg-brand-blue/10 rounded-full transition-colors"
+                            >
+                              <svg
+                                width="17"
+                                height="17"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" />
+                                <line x1="8" y1="2" x2="8" y2="6" />
+                                <line x1="3" y1="10" x2="21" y2="10" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -989,6 +1115,106 @@ export default function AdminMetricsClient({
           </div>
         </div>
       </main>
+
+      {validityMetric && (
+        <div className="fixed inset-0 bg-brand-navy/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-app-surface border border-app-border rounded-xl shadow-2xl p-6 max-w-lg w-full animate-scale-up">
+            <div className="mb-5">
+              <h3 className="text-base font-bold text-brand-navy">Month availability — {validityMetric.name}</h3>
+              <p className="text-xs text-app-muted mt-0.5">
+                Metric ID {validityMetric.metric_id} · Plant {validityMetric.plant_code}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5">
+              <label className="text-xs font-bold text-brand-navy uppercase tracking-wider whitespace-nowrap">Year</label>
+              <select
+                value={validityYear}
+                onChange={(e) => handleValidityYearChange(Number(e.target.value))}
+                className="px-3 py-1.5 border border-app-border rounded-lg text-sm bg-white font-semibold text-brand-navy focus:outline-none focus:border-brand-blue"
+              >
+                {Array.from({ length: 8 }, (_, i) => 2020 + i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            {validityLoading ? (
+              <div className="flex items-center justify-center h-16 text-app-muted text-sm">Loading…</div>
+            ) : (
+              <div className="grid grid-cols-6 gap-2 mb-4">
+                {MONTH_KEYS.map((k, i) => (
+                  <label
+                    key={k}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border cursor-pointer select-none transition-colors ${
+                      validityChecks[k]
+                        ? "bg-brand-blue/10 border-brand-blue text-brand-navy"
+                        : "bg-app-surface-2 border-app-border text-app-muted"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!validityChecks[k]}
+                      onChange={() => setValidityChecks({ ...validityChecks, [k]: !validityChecks[k] })}
+                      className="sr-only"
+                    />
+                    <span className="text-xs font-bold">{MONTH_LABELS[i]}</span>
+                    <span className={`w-3 h-3 rounded-sm border flex items-center justify-center ${
+                      validityChecks[k] ? "bg-brand-blue border-brand-blue" : "border-app-border-strong"
+                    }`}>
+                      {validityChecks[k] && (
+                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5">
+                          <polyline points="2 6 5 9 10 3" />
+                        </svg>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 mb-5">
+              <button
+                type="button"
+                onClick={handleSelectAllMonths}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-surface-2 hover:bg-app-surface-alt border border-app-border text-brand-navy rounded-lg transition-colors"
+              >
+                Select all months
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyFromPrevYear}
+                disabled={validityLoading}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-surface-2 hover:bg-app-surface-alt border border-app-border text-brand-navy rounded-lg transition-colors disabled:opacity-50"
+              >
+                Copy from previous year
+              </button>
+            </div>
+
+            {validityCopyMsg && (
+              <p className="text-xs text-scorecard-red font-semibold mb-4">{validityCopyMsg}</p>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+              <button
+                type="button"
+                onClick={() => setValidityMetric(null)}
+                className="px-4 py-2 text-sm font-semibold border border-app-border text-brand-navy bg-white hover:bg-app-surface-2 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleValiditySave}
+                disabled={validitySaving}
+                className="px-4 py-2 text-sm font-semibold bg-brand-navy hover:bg-brand-blue text-white rounded-lg shadow transition-colors disabled:opacity-60"
+              >
+                {validitySaving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

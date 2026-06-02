@@ -1,0 +1,2 @@
+ALTER TABLE metric_result
+  ADD COLUMN IF NOT EXISTS owner_text VARCHAR(200);

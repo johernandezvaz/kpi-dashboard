@@ -18,6 +18,11 @@ const NAV_LINKS: NavLink[] = [
     showFor: () => true,
   },
   {
+    label: "Capture",
+    path: "/capture",
+    showFor: () => true,
+  },
+  {
     label: "Users",
     path: "/admin/users",
     showFor: (isAdmin) => isAdmin,

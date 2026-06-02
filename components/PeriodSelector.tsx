@@ -23,10 +23,10 @@ interface PeriodSelectorProps {
 }
 
 const selectClass =
-  "appearance-none bg-white/10 border border-white/25 rounded-md " +
-  "text-white text-sm font-medium py-[0.35rem] pl-[0.65rem] pr-8 cursor-pointer " +
-  "bg-[var(--select-chevron)] bg-no-repeat [background-position:right_0.55rem_center] " +
-  "hover:border-white/50 " +
+  "appearance-none bg-white border border-brand-navy/20 rounded-md " +
+  "text-brand-navy text-sm font-medium py-[0.35rem] pl-[0.65rem] pr-8 cursor-pointer " +
+  "bg-[var(--select-chevron-navy)] bg-no-repeat [background-position:right_0.55rem_center] " +
+  "hover:border-brand-navy/40 " +
   "focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/30 " +
   "transition-[border-color,box-shadow] duration-150";
 
@@ -44,7 +44,7 @@ export default function PeriodSelector({
   return (
     <div className="flex items-center gap-5 flex-wrap" role="group" aria-label="Period selector">
       <label className="flex items-center gap-2 cursor-pointer">
-        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-white/60 whitespace-nowrap">
+        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
           Plant
         </span>
         <select
@@ -60,7 +60,7 @@ export default function PeriodSelector({
       </label>
 
       <label className="flex items-center gap-2 cursor-pointer">
-        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-white/60 whitespace-nowrap">
+        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
           Year
         </span>
         <select
@@ -76,7 +76,7 @@ export default function PeriodSelector({
       </label>
 
       <label className="flex items-center gap-2 cursor-pointer">
-        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-white/60 whitespace-nowrap">
+        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
           Month
         </span>
         <select

@@ -2,12 +2,11 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import PeriodSelector from "@/components/PeriodSelector";
 import type { Plant, Month } from "@/components/PeriodSelector";
 import OverallBadge from "@/components/OverallBadge";
 import ScorecardGrid from "@/components/ScorecardGrid";
-import UserMenu from "@/components/UserMenu";
+import AppHeader from "@/components/AppHeader";
 import { getColor } from "@/lib/scorecard";
 import type { ScorecardApiPayload, SelectorsApiPayload, ColorLabel } from "@/lib/scorecard";
 
@@ -118,38 +117,24 @@ function ScorecardPageContent() {
 
   return (
     <div className="flex flex-col min-h-screen pb-8">
-      <header className="flex items-center justify-between gap-6 flex-wrap px-6 py-[0.875rem] bg-brand-navy border-b-2 border-b-brand-blue sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <Image
-            src="/safe-demo_logo-blc-Photoroom.png"
-            alt="Safe Demo"
-            width={140}
-            height={40}
-            className="h-10 w-auto object-contain"
-            priority
-          />
-          <h1 className="text-xl font-bold text-white tracking-[-0.01em]">CDI DTC</h1>
-        </div>
+      <AppHeader />
 
-        <div className="flex-1 flex justify-center">
-          <PeriodSelector
-            plants={plants}
-            years={years}
-            months={months}
-            selectedPlant={plantId}
-            selectedYear={year}
-            selectedMonth={month}
-            onPlantChange={setPlantId}
-            onYearChange={setYear}
-            onMonthChange={setMonth}
-          />
-        </div>
-
-        <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center justify-between gap-4 flex-wrap px-6 py-3 bg-brand-gray border-b border-b-brand-navy/20">
+        <PeriodSelector
+          plants={plants}
+          years={years}
+          months={months}
+          selectedPlant={plantId}
+          selectedYear={year}
+          selectedMonth={month}
+          onPlantChange={setPlantId}
+          onYearChange={setYear}
+          onMonthChange={setMonth}
+        />
+        <div className="shrink-0">
           <OverallBadge ratio={overallRatio} />
-          <UserMenu />
         </div>
-      </header>
+      </div>
 
       <div className="flex items-center justify-between px-6 py-2 text-[0.8rem] font-semibold text-brand-navy bg-brand-gray border-b border-b-brand-navy/20 tracking-[0.02em]">
         <span>
