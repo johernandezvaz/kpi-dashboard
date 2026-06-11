@@ -20,6 +20,8 @@ interface PeriodSelectorProps {
   onPlantChange: (plantId: string) => void;
   onYearChange: (year: number) => void;
   onMonthChange: (month: number) => void;
+  hideMonth?: boolean;
+  hideYear?: boolean;
 }
 
 const selectClass =
@@ -40,6 +42,8 @@ export default function PeriodSelector({
   onPlantChange,
   onYearChange,
   onMonthChange,
+  hideMonth = false,
+  hideYear = false,
 }: PeriodSelectorProps) {
   return (
     <div className="flex items-center gap-5 flex-wrap" role="group" aria-label="Period selector">
@@ -59,37 +63,41 @@ export default function PeriodSelector({
         </select>
       </label>
 
-      <label className="flex items-center gap-2 cursor-pointer">
-        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
-          Year
-        </span>
-        <select
-          id="select-year"
-          className={selectClass}
-          value={selectedYear}
-          onChange={(e) => onYearChange(Number(e.target.value))}
-        >
-          {years.map((y) => (
-            <option key={y} value={y} className="text-brand-navy bg-white">{y}</option>
-          ))}
-        </select>
-      </label>
+      {!hideYear && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
+            Year
+          </span>
+          <select
+            id="select-year"
+            className={selectClass}
+            value={selectedYear}
+            onChange={(e) => onYearChange(Number(e.target.value))}
+          >
+            {years.map((y) => (
+              <option key={y} value={y} className="text-brand-navy bg-white">{y}</option>
+            ))}
+          </select>
+        </label>
+      )}
 
-      <label className="flex items-center gap-2 cursor-pointer">
-        <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
-          Month
-        </span>
-        <select
-          id="select-month"
-          className={selectClass}
-          value={selectedMonth}
-          onChange={(e) => onMonthChange(Number(e.target.value))}
-        >
-          {months.map((m) => (
-            <option key={m.value} value={m.value} className="text-brand-navy bg-white">{m.label}</option>
-          ))}
-        </select>
-      </label>
+      {!hideMonth && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <span className="text-xs font-semibold uppercase tracking-[0.06em] text-brand-navy/60 whitespace-nowrap">
+            Month
+          </span>
+          <select
+            id="select-month"
+            className={selectClass}
+            value={selectedMonth}
+            onChange={(e) => onMonthChange(Number(e.target.value))}
+          >
+            {months.map((m) => (
+              <option key={m.value} value={m.value} className="text-brand-navy bg-white">{m.label}</option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 }

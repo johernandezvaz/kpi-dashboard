@@ -34,12 +34,15 @@ export async function POST(req: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
+    }
     if (!session.user.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
-    const { email, fullName, plantId, isPlantAdmin, areaIds } = body;
+    const { email, fullName, plantId, isPlantAdmin, isGlobalViewer: bodyIsGV, areaIds } = body;
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
@@ -47,31 +50,44 @@ export async function POST(req: Request) {
     if (!fullName || typeof fullName !== "string" || fullName.trim() === "") {
       return NextResponse.json({ error: "Invalid full name" }, { status: 400 });
     }
-    if (typeof plantId !== "number") {
-      return NextResponse.json({ error: "Invalid plant ID" }, { status: 400 });
-    }
 
     const callerPlantId = session.user.adminPlantId;
-    if (callerPlantId !== null && callerPlantId !== undefined) {
-      if (plantId !== callerPlantId) {
-        return NextResponse.json({ error: "Forbidden: Plant admin mismatch" }, { status: 403 });
-      }
+    const callerIsSuperadmin = callerPlantId === null || callerPlantId === undefined;
+
+    if (bodyIsGV && !callerIsSuperadmin) {
+      return NextResponse.json({ error: "Only superadmins can create or modify global viewers." }, { status: 403 });
+    }
+
+    if (bodyIsGV) {
       if (isPlantAdmin) {
-        return NextResponse.json({ error: "Forbidden: Plant admins cannot create other admins" }, { status: 403 });
+        return NextResponse.json({ error: "A user cannot be both a global viewer and a plant admin." }, { status: 400 });
       }
-    }
-
-    if (!Array.isArray(areaIds) || areaIds.length === 0) {
-      return NextResponse.json({ error: "At least one area must be assigned" }, { status: 400 });
-    }
-    const areaCheck = await query("SELECT area_id FROM area WHERE area_id = ANY($1)", [areaIds]);
-    if (areaCheck.rows.length !== areaIds.length) {
-      return NextResponse.json({ error: "Invalid area ID(s)" }, { status: 400 });
-    }
-
-    const plantCheck = await query("SELECT 1 FROM plant WHERE plant_id = $1", [plantId]);
-    if (plantCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Plant not found" }, { status: 400 });
+      if (Array.isArray(areaIds) && areaIds.length > 0) {
+        return NextResponse.json({ error: "Global viewers cannot have area assignments." }, { status: 400 });
+      }
+    } else {
+      if (typeof plantId !== "number") {
+        return NextResponse.json({ error: "Invalid plant ID" }, { status: 400 });
+      }
+      if (!callerIsSuperadmin) {
+        if (plantId !== callerPlantId) {
+          return NextResponse.json({ error: "Forbidden: Plant admin mismatch" }, { status: 403 });
+        }
+        if (isPlantAdmin) {
+          return NextResponse.json({ error: "Forbidden: Plant admins cannot create other admins" }, { status: 403 });
+        }
+      }
+      if (!Array.isArray(areaIds) || areaIds.length === 0) {
+        return NextResponse.json({ error: "At least one area must be assigned" }, { status: 400 });
+      }
+      const areaCheck = await query("SELECT area_id FROM area WHERE area_id = ANY($1)", [areaIds]);
+      if (areaCheck.rows.length !== areaIds.length) {
+        return NextResponse.json({ error: "Invalid area ID(s)" }, { status: 400 });
+      }
+      const plantCheck = await query("SELECT 1 FROM plant WHERE plant_id = $1", [plantId]);
+      if (plantCheck.rows.length === 0) {
+        return NextResponse.json({ error: "Plant not found" }, { status: 400 });
+      }
     }
 
     const lowerEmail = email.trim().toLowerCase();
@@ -95,19 +111,28 @@ export async function POST(req: Request) {
       await client.query("SELECT set_config('app.user_id', $1, true)", [String(session.user.id)]);
 
       const userInsert = await client.query(
-        `INSERT INTO app_user (email, full_name, password_hash, is_admin, admin_plant_id, is_global, active, must_change_password)
-         VALUES ($1, $2, $3, $4, $5, FALSE, TRUE, TRUE)
+        `INSERT INTO app_user (email, full_name, password_hash, is_admin, admin_plant_id, is_global_viewer, is_global, active, must_change_password)
+         VALUES ($1, $2, $3, $4, $5, $6, FALSE, TRUE, TRUE)
          RETURNING user_id`,
-        [lowerEmail, fullName.trim(), passwordHash, !!isPlantAdmin, isPlantAdmin ? plantId : null]
+        [
+          lowerEmail,
+          fullName.trim(),
+          passwordHash,
+          bodyIsGV ? false : !!isPlantAdmin,
+          bodyIsGV ? null : (isPlantAdmin ? plantId : null),
+          !!bodyIsGV,
+        ]
       );
       const newUserId = userInsert.rows[0].user_id;
 
-      for (const areaId of areaIds) {
-        await client.query(
-          `INSERT INTO user_plant_area_access (user_id, plant_id, area_id, can_edit)
-           VALUES ($1, $2, $3, TRUE)`,
-          [newUserId, plantId, areaId]
-        );
+      if (!bodyIsGV) {
+        for (const areaId of areaIds) {
+          await client.query(
+            `INSERT INTO user_plant_area_access (user_id, plant_id, area_id, can_edit)
+             VALUES ($1, $2, $3, TRUE)`,
+            [newUserId, plantId, areaId]
+          );
+        }
       }
 
       await client.query("COMMIT");
@@ -138,12 +163,15 @@ export async function PUT(req: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
+    }
     if (!session.user.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
-    const { userId, email, fullName, plantId, isPlantAdmin, areaIds, active, resetPassword } = body;
+    const { userId, email, fullName, plantId, isPlantAdmin, isGlobalViewer: bodyIsGV, areaIds, active, resetPassword } = body;
 
     if (!userId || typeof userId !== "number") {
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
@@ -167,7 +195,22 @@ export async function PUT(req: Request) {
     const targetUserPlantId = targetUserPlantRes.rows[0]?.plant_id;
 
     const callerPlantId = session.user.adminPlantId;
-    if (callerPlantId !== null && callerPlantId !== undefined) {
+    const callerIsSuperadmin = callerPlantId === null || callerPlantId === undefined;
+
+    if (bodyIsGV && !callerIsSuperadmin) {
+      return NextResponse.json({ error: "Only superadmins can create or modify global viewers." }, { status: 403 });
+    }
+
+    if (bodyIsGV) {
+      if (isPlantAdmin) {
+        return NextResponse.json({ error: "A user cannot be both a global viewer and a plant admin." }, { status: 400 });
+      }
+      if (Array.isArray(areaIds) && areaIds.length > 0) {
+        return NextResponse.json({ error: "Global viewers cannot have area assignments." }, { status: 400 });
+      }
+    }
+
+    if (!callerIsSuperadmin) {
       if (targetUser.is_admin) {
         return NextResponse.json({ error: "Forbidden: Plant admins can only manage operational users" }, { status: 403 });
       }
@@ -216,21 +259,33 @@ export async function PUT(req: Request) {
     // Role and Plant resolution
     let resolvedIsAdmin = targetUser.is_admin;
     let resolvedAdminPlantId = targetUser.admin_plant_id;
+    let resolvedIsGlobalViewer = targetUser.is_global_viewer ?? false;
     let resolvedPlantId = plantId !== undefined ? plantId : targetUserPlantId;
 
-    if (isPlantAdmin !== undefined) {
-      resolvedIsAdmin = isPlantAdmin;
-      resolvedAdminPlantId = isPlantAdmin ? resolvedPlantId : null;
-    } else if (plantId !== undefined) {
-      if (resolvedIsAdmin) {
-        resolvedAdminPlantId = plantId;
+    if (bodyIsGV !== undefined) {
+      resolvedIsGlobalViewer = !!bodyIsGV;
+      if (resolvedIsGlobalViewer) {
+        resolvedIsAdmin = false;
+        resolvedAdminPlantId = null;
+      }
+    }
+
+    if (!resolvedIsGlobalViewer) {
+      if (isPlantAdmin !== undefined) {
+        resolvedIsAdmin = isPlantAdmin;
+        resolvedAdminPlantId = isPlantAdmin ? resolvedPlantId : null;
+      } else if (plantId !== undefined) {
+        if (resolvedIsAdmin) {
+          resolvedAdminPlantId = plantId;
+        }
       }
     }
 
     // Area IDs validation
     let areasToAssign = areaIds;
     const isTargetSuperadmin = resolvedIsAdmin && resolvedAdminPlantId === null;
-    if (!isTargetSuperadmin) {
+    const isTargetGV = resolvedIsGlobalViewer;
+    if (!isTargetSuperadmin && !isTargetGV) {
       if (areasToAssign !== undefined) {
         if (!Array.isArray(areasToAssign) || areasToAssign.length === 0) {
           return NextResponse.json({ error: "At least one area must be assigned" }, { status: 400 });
@@ -274,22 +329,23 @@ export async function PUT(req: Request) {
         await client.query(
           `UPDATE app_user
            SET email = $1, full_name = $2, is_admin = $3, admin_plant_id = $4, active = $5,
-               password_hash = $6, must_change_password = TRUE
-           WHERE user_id = $7`,
-          [lowerEmail, nameVal, resolvedIsAdmin, resolvedAdminPlantId, activeVal, passwordHash, userId]
+               is_global_viewer = $6, password_hash = $7, must_change_password = TRUE
+           WHERE user_id = $8`,
+          [lowerEmail, nameVal, resolvedIsAdmin, resolvedAdminPlantId, activeVal, resolvedIsGlobalViewer, passwordHash, userId]
         );
       } else {
         await client.query(
           `UPDATE app_user
-           SET email = $1, full_name = $2, is_admin = $3, admin_plant_id = $4, active = $5
-           WHERE user_id = $6`,
-          [lowerEmail, nameVal, resolvedIsAdmin, resolvedAdminPlantId, activeVal, userId]
+           SET email = $1, full_name = $2, is_admin = $3, admin_plant_id = $4, active = $5,
+               is_global_viewer = $6
+           WHERE user_id = $7`,
+          [lowerEmail, nameVal, resolvedIsAdmin, resolvedAdminPlantId, activeVal, resolvedIsGlobalViewer, userId]
         );
       }
 
       // Update user_plant_area_access
-      const isTargetSuperadmin = resolvedIsAdmin && resolvedAdminPlantId === null;
-      if (isTargetSuperadmin) {
+      const isTargetSuperadminFinal = resolvedIsAdmin && resolvedAdminPlantId === null;
+      if (isTargetSuperadminFinal || resolvedIsGlobalViewer) {
         await client.query("DELETE FROM user_plant_area_access WHERE user_id = $1", [userId]);
       } else {
         if (areasToAssign !== undefined || plantId !== undefined) {
@@ -299,7 +355,7 @@ export async function PUT(req: Request) {
           }
 
           await client.query("DELETE FROM user_plant_area_access WHERE user_id = $1", [userId]);
-          
+
           if (areasToAssign.length > 0) {
             for (const areaId of areasToAssign) {
               await client.query(

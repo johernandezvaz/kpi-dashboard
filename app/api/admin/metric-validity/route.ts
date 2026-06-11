@@ -14,6 +14,9 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
+    }
 
     if (!session.user.isAdmin || session.user.adminPlantId === null) {
       return NextResponse.json({ error: FORBIDDEN_SUPERADMIN }, { status: 403 });
@@ -62,6 +65,9 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
+    }
 
     if (!session.user.isAdmin || session.user.adminPlantId === null) {
       return NextResponse.json({ error: FORBIDDEN_SUPERADMIN }, { status: 403 });

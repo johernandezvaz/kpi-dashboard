@@ -17,6 +17,9 @@ export async function GET(req: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
+    }
 
     const plantId = getPlantAdminId(session);
     if (plantId === null) {
@@ -87,6 +90,9 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
     }
 
     const plantId = getPlantAdminId(session);

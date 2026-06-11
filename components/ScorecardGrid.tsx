@@ -24,6 +24,11 @@ interface ScorecardGridProps {
   year: number;
   month: number;
   monthLabel: string;
+  mode?: "month" | "year" | "range";
+  startYear?: number;
+  startMonth?: number;
+  endYear?: number;
+  endMonth?: number;
 }
 
 const totalBgMap: Record<ColorLabel, string> = {
@@ -53,8 +58,41 @@ export default function ScorecardGrid({
   plantId,
   year,
   month,
+  mode = "month",
+  startYear,
+  startMonth,
+  endYear,
+  endMonth,
 }: ScorecardGridProps) {
   const router = useRouter();
+  const isYearMode = mode === "year";
+  const isRangeMode = mode === "range";
+
+  function rangeCellHref(areaCode: string, processCode: string): string {
+    const p = new URLSearchParams({
+      plant: plantId,
+      startYear: String(startYear ?? ""),
+      startMonth: String(startMonth ?? ""),
+      endYear: String(endYear ?? ""),
+      endMonth: String(endMonth ?? ""),
+      area: encodeURIComponent(areaCode),
+      process: processCode,
+    });
+    return `/scorecard/range/cell?${p.toString()}`;
+  }
+
+  function rangeTotalHref(dimension: "process" | "area", code: string): string {
+    const p = new URLSearchParams({
+      plant: plantId,
+      startYear: String(startYear ?? ""),
+      startMonth: String(startMonth ?? ""),
+      endYear: String(endYear ?? ""),
+      endMonth: String(endMonth ?? ""),
+      dimension,
+      code: encodeURIComponent(code),
+    });
+    return `/scorecard/range/total?${p.toString()}`;
+  }
 
   const cellMap = new Map<string, DbCell>();
   cells.forEach((c) => {
@@ -129,7 +167,11 @@ export default function ScorecardGrid({
                         cell
                           ? () =>
                             router.push(
-                              `/scorecard/${plantId}/${year}/${month}/${encodeURIComponent(area.code)}/${proc.code}`
+                              isRangeMode
+                                ? rangeCellHref(area.code, proc.code)
+                                : isYearMode
+                                  ? `/scorecard/${plantId}/${year}/year/${encodeURIComponent(area.code)}/${proc.code}`
+                                  : `/scorecard/${plantId}/${year}/${month}/${encodeURIComponent(area.code)}/${proc.code}`
                             )
                           : undefined
                       }
@@ -153,7 +195,11 @@ export default function ScorecardGrid({
                       title={`Score: ${at.totalScore} / ${2 * at.metricsCount} (${at.metricsCount} metrics) — click for detail`}
                       onClick={() =>
                         router.push(
-                          `/scorecard/total/area/${encodeURIComponent(at.areaCode)}/${plantId}/${year}/${month}`
+                          isRangeMode
+                            ? rangeTotalHref("area", at.areaCode)
+                            : isYearMode
+                              ? `/scorecard/total/area/${encodeURIComponent(at.areaCode)}/${plantId}/${year}/year`
+                              : `/scorecard/total/area/${encodeURIComponent(at.areaCode)}/${plantId}/${year}/${month}`
                         )
                       }
                     >
@@ -194,7 +240,11 @@ export default function ScorecardGrid({
                   title={`Score: ${total.totalScore} / ${2 * total.metricsCount} (${total.metricsCount} metrics) — click for detail`}
                   onClick={() =>
                     router.push(
-                      `/scorecard/total/process/${proc.code}/${plantId}/${year}/${month}`
+                      isRangeMode
+                        ? rangeTotalHref("process", proc.code)
+                        : isYearMode
+                          ? `/scorecard/total/process/${proc.code}/${plantId}/${year}/year`
+                          : `/scorecard/total/process/${proc.code}/${plantId}/${year}/${month}`
                     )
                   }
                 >

@@ -6,6 +6,7 @@ declare module "next-auth" {
     id: string;
     isAdmin: boolean;
     isGlobal: boolean;
+    isGlobalViewer: boolean;
     mustChangePassword: boolean;
     adminPlantId: number | null;
   }
@@ -17,6 +18,7 @@ declare module "next-auth" {
       name: string;
       isAdmin: boolean;
       isGlobal: boolean;
+      isGlobalViewer: boolean;
       mustChangePassword: boolean;
       adminPlantId: number | null;
     };
@@ -28,6 +30,7 @@ declare module "next-auth/jwt" {
     id: string;
     isAdmin: boolean;
     isGlobal: boolean;
+    isGlobalViewer: boolean;
     mustChangePassword: boolean;
     adminPlantId: number | null;
   }

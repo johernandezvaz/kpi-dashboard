@@ -9,6 +9,9 @@ export async function POST(req: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (session.user.isGlobalViewer) {
+      return NextResponse.json({ error: "Global viewers cannot access this endpoint" }, { status: 403 });
+    }
     if (!session.user.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

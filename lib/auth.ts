@@ -13,6 +13,7 @@ interface AppUserRow {
   password_hash: string;
   is_admin: boolean;
   is_global: boolean;
+  is_global_viewer: boolean;
   active: boolean;
   must_change_password: boolean;
   admin_plant_id: number | null;
@@ -70,7 +71,7 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const result = await query<AppUserRow>(
-            `SELECT user_id, email, full_name, password_hash, is_admin, is_global, active, must_change_password, admin_plant_id
+            `SELECT user_id, email, full_name, password_hash, is_admin, is_global, is_global_viewer, active, must_change_password, admin_plant_id
              FROM app_user
              WHERE email = $1`,
             [credentials.email]
@@ -102,6 +103,7 @@ export const authOptions: NextAuthOptions = {
             name: user.full_name,
             isAdmin: user.is_admin,
             isGlobal: user.is_global,
+            isGlobalViewer: user.is_global_viewer,
             mustChangePassword: user.must_change_password,
             adminPlantId: user.admin_plant_id,
           };
@@ -117,6 +119,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.isAdmin = user.isAdmin;
         token.isGlobal = user.isGlobal;
+        token.isGlobalViewer = user.isGlobalViewer;
         token.mustChangePassword = user.mustChangePassword;
         token.adminPlantId = user.adminPlantId ?? null;
       }
@@ -124,6 +127,7 @@ export const authOptions: NextAuthOptions = {
       if (token.adminPlantId === undefined) token.adminPlantId = null;
       if (token.isAdmin === undefined) token.isAdmin = false;
       if (token.isGlobal === undefined) token.isGlobal = false;
+      if (token.isGlobalViewer === undefined) token.isGlobalViewer = false;
       if (token.mustChangePassword === undefined) token.mustChangePassword = false;
       return token;
     },
@@ -131,6 +135,7 @@ export const authOptions: NextAuthOptions = {
       session.user.id = token.id;
       session.user.isAdmin = token.isAdmin;
       session.user.isGlobal = token.isGlobal;
+      session.user.isGlobalViewer = token.isGlobalViewer;
       session.user.mustChangePassword = token.mustChangePassword;
       session.user.adminPlantId = token.adminPlantId;
       return session;
@@ -141,10 +146,9 @@ export const authOptions: NextAuthOptions = {
 export async function getAuthorizedPlants(session: any) {
   if (!session?.user) return [];
 
-  const { id: userId, isAdmin, isGlobal, adminPlantId } = session.user;
+  const { id: userId, isAdmin, isGlobal, isGlobalViewer, adminPlantId } = session.user;
 
-  // Superadmin and Global Viewer can access all active plants
-  if (isGlobal || (isAdmin && adminPlantId === null)) {
+  if (isGlobal || isGlobalViewer || (isAdmin && adminPlantId === null)) {
     const res = await query<{ plant_id: number; code: string; name: string }>(
       `SELECT plant_id, code, name
        FROM plant
@@ -154,7 +158,6 @@ export async function getAuthorizedPlants(session: any) {
     return res.rows;
   }
 
-  // Plant Admin can access only their specific plant
   if (isAdmin && adminPlantId !== null) {
     const res = await query<{ plant_id: number; code: string; name: string }>(
       `SELECT plant_id, code, name
@@ -165,8 +168,7 @@ export async function getAuthorizedPlants(session: any) {
     return res.rows;
   }
 
-  // Operational/Gerente can access plants where they have area assignments
-  if (!isAdmin && !isGlobal) {
+  if (!isAdmin && !isGlobal && !isGlobalViewer) {
     const res = await query<{ plant_id: number; code: string; name: string }>(
       `SELECT DISTINCT p.plant_id, p.code, p.name
        FROM plant p
@@ -184,14 +186,11 @@ export async function getAuthorizedPlants(session: any) {
 export async function isAuthorizedForPlant(session: any, plantCode: string): Promise<boolean> {
   if (!session?.user) return false;
 
-  const { id: userId, isAdmin, isGlobal, adminPlantId } = session.user;
+  const { id: userId, isAdmin, isGlobal, isGlobalViewer, adminPlantId } = session.user;
 
-  // 1. Superadmin and Global Viewer have access to all plants
-  if (isGlobal || (isAdmin && adminPlantId === null)) {
+  if (isGlobal || isGlobalViewer || (isAdmin && adminPlantId === null)) {
     return true;
   }
-
-  // 2. Plant Admin can only access their specific adminPlantId
   if (isAdmin && adminPlantId !== null) {
     const res = await query(
       "SELECT 1 FROM plant WHERE plant_id = $1 AND code = $2 AND active = true",
@@ -200,8 +199,7 @@ export async function isAuthorizedForPlant(session: any, plantCode: string): Pro
     return (res.rowCount ?? 0) > 0;
   }
 
-  // 3. Operational/Gerente can only access plants where they have area assignments
-  if (!isAdmin && !isGlobal) {
+  if (!isAdmin && !isGlobal && !isGlobalViewer) {
     const res = await query(
       `SELECT 1 FROM plant p
        JOIN user_plant_area_access upa ON upa.plant_id = p.plant_id

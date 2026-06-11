@@ -8,7 +8,7 @@ import Image from "next/image";
 interface NavLink {
   label: string;
   path: string;
-  showFor: (isAdmin: boolean, adminPlantId: number | null) => boolean;
+  showFor: (isAdmin: boolean, adminPlantId: number | null, isGlobalViewer: boolean) => boolean;
 }
 
 const NAV_LINKS: NavLink[] = [
@@ -20,27 +20,37 @@ const NAV_LINKS: NavLink[] = [
   {
     label: "Capture",
     path: "/capture",
-    showFor: () => true,
+    showFor: (_a, _p, isGV) => !isGV,
+  },
+  {
+    label: "Issues",
+    path: "/issues",
+    showFor: (_a, _p, isGV) => !isGV,
   },
   {
     label: "Users",
     path: "/admin/users",
-    showFor: (isAdmin) => isAdmin,
+    showFor: (isAdmin, _p, isGV) => isAdmin && !isGV,
   },
   {
     label: "Metrics",
     path: "/admin/metrics",
-    showFor: (isAdmin) => isAdmin,
+    showFor: (isAdmin, _p, isGV) => isAdmin && !isGV,
   },
   {
     label: "Targets",
     path: "/admin/targets",
-    showFor: (isAdmin, adminPlantId) => isAdmin && adminPlantId !== null,
+    showFor: (isAdmin, adminPlantId, isGV) => isAdmin && adminPlantId !== null && !isGV,
+  },
+  {
+    label: "Thresholds",
+    path: "/admin/thresholds",
+    showFor: (isAdmin, _adminPlantId, isGV) => isAdmin && !isGV,
   },
   {
     label: "Logs",
     path: "/admin/logs",
-    showFor: (isAdmin, adminPlantId) => isAdmin && adminPlantId === null,
+    showFor: (isAdmin, adminPlantId, isGV) => isAdmin && adminPlantId === null && !isGV,
   },
 ];
 
@@ -50,11 +60,11 @@ export default function AppHeader() {
 
   if (status !== "authenticated" || !session) return null;
 
-  const { isAdmin, adminPlantId, name, email } = session.user;
+  const { isAdmin, adminPlantId, isGlobalViewer, name, email } = session.user;
   const displayName = name || email;
 
   const visibleLinks = NAV_LINKS.filter((link) =>
-    link.showFor(isAdmin, adminPlantId)
+    link.showFor(isAdmin, adminPlantId, isGlobalViewer)
   );
 
   function isActive(linkPath: string): boolean {

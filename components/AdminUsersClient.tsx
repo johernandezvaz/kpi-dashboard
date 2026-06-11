@@ -9,6 +9,7 @@ interface UserListItem {
   email: string;
   full_name: string;
   is_admin: boolean;
+  is_global_viewer: boolean;
   admin_plant_id: number | null;
   active: boolean;
   must_change_password: boolean;
@@ -33,6 +34,7 @@ interface AreaItem {
 interface CurrentUser {
   isAdmin: boolean;
   adminPlantId: number | null;
+  isSuperadmin: boolean;
 }
 
 interface AdminUsersClientProps {
@@ -42,10 +44,12 @@ interface AdminUsersClientProps {
   currentUser: CurrentUser;
 }
 
+type RoleValue = "operational" | "plant_admin" | "global_viewer";
+
 interface NewUserRow {
   email: string;
   full_name: string;
-  is_admin: boolean;
+  role: RoleValue;
   admin_plant_id: number;
   area_ids: number[];
 }
@@ -58,7 +62,7 @@ interface SuccessData {
 
 export default function AdminUsersClient({ initialUsers, plants, areas, currentUser }: AdminUsersClientProps) {
   const router = useRouter();
-  const isSuperadmin = currentUser.adminPlantId === null || currentUser.adminPlantId === undefined;
+  const isSuperadmin = currentUser.isSuperadmin;
   const plantAdminPlant = plants.find((p) => Number(p.id) === Number(currentUser.adminPlantId));
 
   const [users, setUsers] = useState<UserListItem[]>(initialUsers);
@@ -66,7 +70,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
   const [newRow, setNewRow] = useState<NewUserRow>({
     email: "",
     full_name: "",
-    is_admin: false,
+    role: "operational",
     admin_plant_id: isSuperadmin ? (plants[0]?.id ?? 0) : Number(currentUser.adminPlantId ?? 0),
     area_ids: [],
   });
@@ -78,15 +82,13 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
   const [successType, setSuccessType] = useState<"created" | "reset">("created");
   const [copied, setCopied] = useState(false);
 
-  // Selector modals state
   const [plantsOpen, setPlantsOpen] = useState(false);
 
-  // Editing state
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [editingRow, setEditingRow] = useState<NewUserRow>({
     email: "",
     full_name: "",
-    is_admin: false,
+    role: "operational",
     admin_plant_id: 0,
     area_ids: [],
   });
@@ -94,6 +96,12 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
   const [editingPlantsOpen, setEditingPlantsOpen] = useState(false);
 
   const rowRef = useRef<HTMLTableRowElement>(null);
+
+  function getUserRole(user: UserListItem): RoleValue {
+    if (user.is_global_viewer) return "global_viewer";
+    if (user.is_admin) return "plant_admin";
+    return "operational";
+  }
 
   const handleRowDoubleClick = (user: UserListItem) => {
     if (editingUserId === user.user_id) return;
@@ -107,7 +115,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
     setEditingRow({
       email: user.email,
       full_name: user.full_name,
-      is_admin: user.is_admin,
+      role: getUserRole(user),
       admin_plant_id: user.plant_id ?? (plants[0]?.id ?? 0),
       area_ids: user.area_ids ?? [],
     });
@@ -132,7 +140,8 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
       return;
     }
 
-    if (editingRow.area_ids.length === 0) {
+    const isGV = editingRow.role === "global_viewer";
+    if (!isGV && editingRow.area_ids.length === 0) {
       setError("At least one area must be assigned.");
       return;
     }
@@ -150,9 +159,10 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
           userId: editingUserId,
           email: emailVal,
           fullName: nameVal,
-          plantId: editingRow.admin_plant_id,
-          isPlantAdmin: isSuperadmin ? editingRow.is_admin : false,
-          areaIds: editingRow.area_ids,
+          plantId: isGV ? undefined : editingRow.admin_plant_id,
+          isPlantAdmin: isSuperadmin ? (editingRow.role === "plant_admin") : false,
+          isGlobalViewer: isSuperadmin ? isGV : false,
+          areaIds: isGV ? [] : editingRow.area_ids,
         }),
       });
 
@@ -163,7 +173,9 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
       }
 
       const assignedPlant = plants.find((p) => p.id === editingRow.admin_plant_id);
-      const assignedAreaCodes = areas.filter((a) => editingRow.area_ids.includes(a.id)).map((a) => a.code);
+      const assignedAreaCodes = isGV
+        ? []
+        : areas.filter((a) => editingRow.area_ids.includes(a.id)).map((a) => a.code);
 
       setUsers(
         users.map((u) => {
@@ -172,12 +184,13 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
               ...u,
               email: emailVal,
               full_name: nameVal,
-              is_admin: isSuperadmin ? editingRow.is_admin : false,
-              admin_plant_id: editingRow.is_admin ? editingRow.admin_plant_id : null,
+              is_admin: isSuperadmin ? (editingRow.role === "plant_admin") : false,
+              is_global_viewer: isSuperadmin ? isGV : false,
+              admin_plant_id: editingRow.role === "plant_admin" ? editingRow.admin_plant_id : null,
               area_codes: assignedAreaCodes,
-              area_ids: editingRow.area_ids,
-              plant_id: editingRow.admin_plant_id,
-              admin_plant_code: assignedPlant ? assignedPlant.code : null,
+              area_ids: isGV ? [] : editingRow.area_ids,
+              plant_id: isGV ? null : editingRow.admin_plant_id,
+              admin_plant_code: isGV ? null : (assignedPlant ? assignedPlant.code : null),
             };
           }
           return u;
@@ -295,7 +308,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
       email: "",
       full_name: "",
 
-      is_admin: false,
+      role: "operational",
       admin_plant_id: isSuperadmin ? (plants[0]?.id ?? 0) : (currentUser.adminPlantId ?? 0),
       area_ids: [],
     });
@@ -347,7 +360,8 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
       return;
     }
 
-    if (newRow.area_ids.length === 0) {
+    const isGV = newRow.role === "global_viewer";
+    if (!isGV && newRow.area_ids.length === 0) {
       setError("At least one area must be assigned.");
       return;
     }
@@ -364,9 +378,10 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
         body: JSON.stringify({
           email: emailVal,
           fullName: nameVal,
-          plantId: newRow.admin_plant_id,
-          isPlantAdmin: isSuperadmin ? newRow.is_admin : false,
-          areaIds: newRow.area_ids,
+          plantId: isGV ? 0 : newRow.admin_plant_id,
+          isPlantAdmin: isSuperadmin ? (newRow.role === "plant_admin") : false,
+          isGlobalViewer: isSuperadmin ? isGV : false,
+          areaIds: isGV ? [] : newRow.area_ids,
         }),
       });
 
@@ -376,21 +391,24 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
         throw new Error(data.error || "Failed to save user.");
       }
 
-      const assignedPlant = plants.find((p) => p.id === newRow.admin_plant_id);
-      const assignedAreaCodes = areas.filter((a) => newRow.area_ids.includes(a.id)).map((a) => a.code);
+      const assignedPlant = isGV ? null : plants.find((p) => p.id === newRow.admin_plant_id);
+      const assignedAreaCodes = isGV
+        ? []
+        : areas.filter((a) => newRow.area_ids.includes(a.id)).map((a) => a.code);
 
       const createdUser: UserListItem = {
         user_id: data.userId,
         email: emailVal,
         full_name: nameVal,
-        is_admin: isSuperadmin ? newRow.is_admin : false,
-        admin_plant_id: newRow.is_admin ? newRow.admin_plant_id : null,
+        is_admin: isSuperadmin ? (newRow.role === "plant_admin") : false,
+        is_global_viewer: isSuperadmin ? isGV : false,
+        admin_plant_id: newRow.role === "plant_admin" ? newRow.admin_plant_id : null,
         active: true,
         must_change_password: true,
         area_codes: assignedAreaCodes,
         admin_plant_code: assignedPlant ? assignedPlant.code : null,
-        plant_id: newRow.admin_plant_id,
-        area_ids: newRow.area_ids,
+        plant_id: isGV ? null : newRow.admin_plant_id,
+        area_ids: isGV ? [] : newRow.area_ids,
       };
 
       setUsers([...users, createdUser]);
@@ -503,11 +521,10 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
               {plants.map((p) => (
                 <label
                   key={p.id}
-                  className={`flex items-center gap-3 p-2 hover:bg-app-surface-2 border rounded-lg cursor-pointer select-none transition-colors ${
-                    newRow.admin_plant_id === p.id
-                      ? "bg-brand-blue/10 border-brand-blue"
-                      : "border-app-border"
-                  }`}
+                  className={`flex items-center gap-3 p-2 hover:bg-app-surface-2 border rounded-lg cursor-pointer select-none transition-colors ${newRow.admin_plant_id === p.id
+                    ? "bg-brand-blue/10 border-brand-blue"
+                    : "border-app-border"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -543,11 +560,10 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
               {plants.map((p) => (
                 <label
                   key={p.id}
-                  className={`flex items-center gap-3 p-2 hover:bg-app-surface-2 border rounded-lg cursor-pointer select-none transition-colors ${
-                    editingRow.admin_plant_id === p.id
-                      ? "bg-brand-blue/10 border-brand-blue"
-                      : "border-app-border"
-                  }`}
+                  className={`flex items-center gap-3 p-2 hover:bg-app-surface-2 border rounded-lg cursor-pointer select-none transition-colors ${editingRow.admin_plant_id === p.id
+                    ? "bg-brand-blue/10 border-brand-blue"
+                    : "border-app-border"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -703,7 +719,10 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
 
                   let role = "OPERATIONAL";
                   let badgeBg = "bg-app-surface-2 text-app-text";
-                  if (user.is_admin) {
+                  if (user.is_global_viewer) {
+                    role = "GLOBAL VIEWER";
+                    badgeBg = "bg-scorecard-yellow text-brand-navy";
+                  } else if (user.is_admin) {
                     if (user.admin_plant_id === null) {
                       role = "SUPERADMIN";
                       badgeBg = "bg-brand-navy text-white";
@@ -720,8 +739,8 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                       title="Click to toggle status"
                       disabled={submitting}
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold transition-colors cursor-pointer select-none ${user.active
-                          ? "bg-scorecard-green/10 text-scorecard-green hover:bg-scorecard-green/20"
-                          : "bg-scorecard-red/10 text-scorecard-red hover:bg-scorecard-red/20"
+                        ? "bg-scorecard-green/10 text-scorecard-green hover:bg-scorecard-green/20"
+                        : "bg-scorecard-red/10 text-scorecard-red hover:bg-scorecard-red/20"
                         }`}
                     >
                       {user.active ? "Active" : "Inactive"}
@@ -779,15 +798,15 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                         <td className="px-4 py-3">
                           {isSuperadmin ? (
                             <select
-                              value={editingRow.is_admin ? "true" : "false"}
+                              value={editingRow.role}
                               onChange={(e) => {
-                                const val = e.target.value === "true";
-                                setEditingRow({ ...editingRow, is_admin: val });
+                                setEditingRow({ ...editingRow, role: e.target.value as RoleValue, area_ids: [] });
                               }}
                               className="w-full px-2 py-1.5 border border-app-border rounded-lg text-sm bg-white text-brand-navy font-bold focus:outline-none focus:border-brand-blue"
                             >
-                              <option value="false">OPERATIONAL</option>
-                              <option value="true">PLANT ADMIN</option>
+                              <option value="operational">OPERATIONAL</option>
+                              <option value="plant_admin">PLANT ADMIN</option>
+                              <option value="global_viewer">GLOBAL VIEWER</option>
                             </select>
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-bold bg-app-surface-2 text-app-text border border-app-border">
@@ -796,7 +815,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {isSuperadmin ? (
+                          {editingRow.role !== "global_viewer" && isSuperadmin ? (
                             <button
                               type="button"
                               onClick={() => setEditingPlantsOpen(true)}
@@ -807,14 +826,17 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                               </span>
                               <span className="ml-1 text-xs text-app-muted">⚙</span>
                             </button>
-                          ) : (
+                          ) : editingRow.role !== "global_viewer" ? (
                             <span className="text-sm font-bold text-brand-navy">
                               {user.admin_plant_code || plantAdminPlant?.code || "—"}
                             </span>
+                          ) : (
+                            <span className="text-sm text-app-muted">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 overflow-visible">
                           <div className="w-full text-left">
+                            {editingRow.role !== "global_viewer" && (
                             <button
                               type="button"
                               onClick={() => setEditingAreasOpen(true)}
@@ -830,6 +852,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                               </span>
                               <span className="ml-1 text-xs text-app-muted">⚙</span>
                             </button>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -963,15 +986,15 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                     <td className="px-4 py-3">
                       {isSuperadmin ? (
                         <select
-                          value={newRow.is_admin ? "true" : "false"}
+                          value={newRow.role}
                           onChange={(e) => {
-                            const val = e.target.value === "true";
-                            setNewRow({ ...newRow, is_admin: val });
+                            setNewRow({ ...newRow, role: e.target.value as RoleValue, area_ids: [] });
                           }}
                           className="w-full px-2 py-1.5 border border-app-border rounded-lg text-sm bg-white text-brand-navy font-bold focus:outline-none focus:border-brand-blue"
                         >
-                          <option value="false">OPERATIONAL</option>
-                          <option value="true">PLANT ADMIN</option>
+                          <option value="operational">OPERATIONAL</option>
+                          <option value="plant_admin">PLANT ADMIN</option>
+                          <option value="global_viewer">GLOBAL VIEWER</option>
                         </select>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-bold bg-app-surface-2 text-app-text border border-app-border">
@@ -980,7 +1003,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {isSuperadmin ? (
+                      {newRow.role !== "global_viewer" && isSuperadmin ? (
                         <button
                           type="button"
                           onClick={() => setPlantsOpen(true)}
@@ -991,14 +1014,17 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                           </span>
                           <span className="ml-1 text-xs text-app-muted">⚙</span>
                         </button>
-                      ) : (
+                      ) : newRow.role !== "global_viewer" ? (
                         <span className="text-sm font-bold text-brand-navy">
                           {plantAdminPlant?.code ?? ""}
                         </span>
+                      ) : (
+                        <span className="text-sm text-app-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 overflow-visible">
                       <div className="w-full text-left">
+                        {newRow.role !== "global_viewer" && (
                         <button
                           type="button"
                           onClick={() => setAreasOpen(true)}
@@ -1014,6 +1040,7 @@ export default function AdminUsersClient({ initialUsers, plants, areas, currentU
                           </span>
                           <span className="ml-1 text-xs text-app-muted">⚙</span>
                         </button>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-app-muted">

@@ -9,6 +9,7 @@ interface UserListItem {
   email: string;
   full_name: string;
   is_admin: boolean;
+  is_global_viewer: boolean;
   admin_plant_id: number | null;
   active: boolean;
   must_change_password: boolean;
@@ -37,6 +38,23 @@ export default async function AdminUsersPage() {
     redirect("/login");
   }
 
+  if (session.user.isGlobalViewer) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-app-bg p-6">
+        <div className="bg-app-surface p-8 rounded-xl border border-app-border max-w-md text-center shadow-sm">
+          <div className="text-scorecard-yellow text-4xl mb-4">🔒</div>
+          <h1 className="text-xl font-bold text-app-text mb-2">Access Restricted</h1>
+          <p className="text-sm text-app-muted mb-6">
+            Global viewers have read-only access to the scorecard. This page is not available for your role.
+          </p>
+          <a href="/" className="inline-block px-4 py-2 bg-brand-navy hover:bg-brand-blue text-white rounded text-sm font-semibold transition-colors duration-100">
+            Back to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   if (!session.user.isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-app-bg p-6">
@@ -62,7 +80,7 @@ export default async function AdminUsersPage() {
 
   if (callerPlantId === null) {
     const res = await query<UserListItem>(
-      `SELECT u.user_id, u.email, u.full_name, u.is_admin, u.admin_plant_id,
+      `SELECT u.user_id, u.email, u.full_name, u.is_admin, u.is_global_viewer, u.admin_plant_id,
               u.active, u.must_change_password,
               (SELECT array_agg(a.code ORDER BY a.code)
                FROM user_plant_area_access upa
@@ -88,7 +106,7 @@ export default async function AdminUsersPage() {
     users = res.rows;
   } else {
     const res = await query<UserListItem>(
-      `SELECT u.user_id, u.email, u.full_name, u.is_admin, u.admin_plant_id,
+      `SELECT u.user_id, u.email, u.full_name, u.is_admin, u.is_global_viewer, u.admin_plant_id,
               u.active, u.must_change_password,
               (SELECT array_agg(a.code ORDER BY a.code)
                FROM user_plant_area_access upa
@@ -138,6 +156,7 @@ export default async function AdminUsersPage() {
   const currentUser = {
     isAdmin: session.user.isAdmin,
     adminPlantId: session.user.adminPlantId,
+    isSuperadmin: session.user.isAdmin && (session.user.adminPlantId === null || session.user.adminPlantId === undefined),
   };
 
   return (
