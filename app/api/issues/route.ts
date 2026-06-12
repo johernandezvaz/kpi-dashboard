@@ -158,8 +158,8 @@ export async function GET(request: NextRequest) {
 
     const issues = issuesRes.rows.map((r) => {
       const canMarkResolved =
-        isOperational &&
         !r.is_resolved &&
+        !isSuperadmin &&
         (r.created_by === userId || r.updated_by === userId);
       return {
         resultId:       r.result_id,

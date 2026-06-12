@@ -135,6 +135,8 @@ function ScorecardPageContent() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error,   setError]   = useState<string | null>(null);
 
+  const [infoOpen, setInfoOpen] = useState(false);
+
   const [thresholds, setThresholds] = useState<{ yellowMin: number; greenMin: number }>({ yellowMin: 0.6, greenMin: 0.75 });
 
   useEffect(() => {
@@ -336,7 +338,21 @@ function ScorecardPageContent() {
             />
           )}
         </div>
-        <div className="shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            id="scorecard-info-btn"
+            title="How are these numbers calculated?"
+            onClick={() => setInfoOpen(true)}
+            className="flex items-center justify-center w-7 h-7 rounded-full border border-brand-navy/25 text-brand-navy/60 hover:text-brand-blue hover:border-brand-blue/50 hover:bg-brand-blue/8 transition-colors"
+            aria-label="How are these numbers calculated?"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="7.25" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M7.25 7.25h.75v4.25h.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="8" cy="4.75" r="0.875" fill="currentColor" />
+            </svg>
+          </button>
           <OverallBadge ratio={overallRatio} />
         </div>
       </div>
@@ -394,6 +410,126 @@ function ScorecardPageContent() {
           </div>
         ) : null}
       </main>
+
+      {infoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setInfoOpen(false)} />
+          <div className="relative bg-app-surface border border-app-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-7 flex flex-col gap-5">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-base font-bold text-brand-navy leading-snug">How the scorecard is calculated</h2>
+              <button
+                type="button"
+                onClick={() => setInfoOpen(false)}
+                className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-brand-navy/20 text-brand-navy/50 hover:text-brand-navy hover:border-brand-navy/40 transition-colors"
+                aria-label="Close"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                  <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-[0.8rem] font-bold uppercase tracking-[0.07em] text-brand-navy/70">Score per metric</h3>
+              <p className="text-[0.85rem] text-app-text leading-relaxed">
+                Each individual metric produces a score of <strong>0</strong>, <strong>1</strong>, or <strong>2</strong>:
+              </p>
+              <ul className="text-[0.85rem] text-app-text leading-relaxed list-disc pl-5 flex flex-col gap-1">
+                <li><strong>2 (green)</strong> — the metric hit its green target.</li>
+                <li><strong>1 (yellow)</strong> — missed green but hit yellow.</li>
+                <li><strong>0 (red)</strong> — missed both targets.</li>
+              </ul>
+              <p className="text-[0.85rem] text-app-text leading-relaxed mt-1">
+                The direction depends on the metric&apos;s <em>higher&nbsp;is&nbsp;better</em> flag:
+              </p>
+              <ul className="text-[0.85rem] text-app-text leading-relaxed list-disc pl-5 flex flex-col gap-1">
+                <li><strong>Higher is better:</strong> green if value ≥ green limit, yellow if value ≥ yellow limit, red otherwise.</li>
+                <li><strong>Lower is better:</strong> green if value ≤ green limit, yellow if value ≤ yellow limit, red otherwise.</li>
+              </ul>
+            </section>
+
+            <div className="h-px bg-brand-navy/10" />
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-[0.8rem] font-bold uppercase tracking-[0.07em] text-brand-navy/70">Compliance (%)</h3>
+              <p className="text-[0.85rem] text-app-text leading-relaxed">
+                The formula is the same at every level (cell, process, area, overall) and in every mode (month, year, range):
+              </p>
+              <div className="bg-brand-gray rounded-lg px-4 py-3 text-[0.85rem] font-mono text-brand-navy">
+                compliance = SUM(scores) ÷ (2 × total_metrics)
+              </div>
+              <p className="text-[0.85rem] text-app-text leading-relaxed">
+                <strong>Example:</strong> 10 metrics in a cell. 5 green (10 pts), 3 yellow (3 pts), 2 red (0 pts).
+                Total score = 13. Maximum possible = 20. Compliance = <strong>65%</strong>.
+              </p>
+            </section>
+
+            <div className="h-px bg-brand-navy/10" />
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-[0.8rem] font-bold uppercase tracking-[0.07em] text-brand-navy/70">How the calculation changes per mode</h3>
+              <ul className="text-[0.85rem] text-app-text leading-relaxed list-disc pl-5 flex flex-col gap-1">
+                <li><strong>Month</strong> — includes only metrics captured in the selected month.</li>
+                <li><strong>Year</strong> — aggregates all 12 months of the selected year. Each monthly capture counts as one contribution to the sum.</li>
+                <li><strong>Range</strong> — same as year, but between two arbitrary dates (which can span multiple years).</li>
+              </ul>
+              <p className="text-[0.85rem] text-app-text leading-relaxed">
+                The formula does not change — only which periods are included in the sum.
+              </p>
+            </section>
+
+            <div className="h-px bg-brand-navy/10" />
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-[0.8rem] font-bold uppercase tracking-[0.07em] text-brand-navy/70">Color thresholds for aggregated compliance</h3>
+              <p className="text-[0.85rem] text-app-text leading-relaxed">
+                These thresholds apply at the cell, process, area, and overall level:
+              </p>
+              <div className="bg-brand-gray rounded-lg px-4 py-3 flex flex-col gap-1.5 text-[0.85rem] font-semibold">
+                <div>
+                  <span className="inline-block w-20 text-scorecard-green">Green:</span>
+                  <span className="text-app-text">≥ {Math.round(thresholds.greenMin * 1000) / 10}%</span>
+                </div>
+                <div>
+                  <span className="inline-block w-20 text-scorecard-yellow">Yellow:</span>
+                  <span className="text-app-text">{Math.round(thresholds.yellowMin * 1000) / 10}% – {Math.round((thresholds.greenMin - 0.001) * 1000) / 10}%</span>
+                </div>
+                <div>
+                  <span className="inline-block w-20 text-scorecard-red">Red:</span>
+                  <span className="text-app-text">&lt; {Math.round(thresholds.yellowMin * 1000) / 10}%</span>
+                </div>
+              </div>
+              <p className="text-[0.82rem] text-app-muted">
+                Threshold values are not hard-coded — administrators can adjust them at <em>/admin/thresholds</em>.
+              </p>
+            </section>
+
+            <div className="h-px bg-brand-navy/10" />
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-[0.8rem] font-bold uppercase tracking-[0.07em] text-brand-navy/70">Metrics without data</h3>
+              <p className="text-[0.85rem] text-app-text leading-relaxed">
+                Months without captured data do not contribute to aggregated compliance. They do not count as red or as green — they simply do not enter the calculation.
+              </p>
+            </section>
+
+            <div className="h-px bg-brand-navy/10" />
+
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-[0.78rem] text-app-muted italic">
+                This formula applies identically to month, year, and range views.
+              </p>
+              <button
+                type="button"
+                onClick={() => setInfoOpen(false)}
+                className="px-4 py-1.5 rounded text-xs font-semibold border border-brand-navy/20 text-brand-navy hover:bg-brand-gray transition-colors whitespace-nowrap"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="px-6 py-3 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-[0.625rem] flex-wrap">

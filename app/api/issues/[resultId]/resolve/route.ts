@@ -12,15 +12,16 @@ export async function PUT(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { isAdmin, isGlobal, isGlobalViewer } = session.user;
+  const { isAdmin, isGlobal, isGlobalViewer, adminPlantId } = session.user;
 
   if (isGlobalViewer) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (isAdmin || isGlobal) {
+  const isSuperadmin = (isAdmin || isGlobal) && adminPlantId === null;
+  if (isSuperadmin) {
     return NextResponse.json(
-      { error: "Only the user who captured the issue can mark it resolved." },
+      { error: "Superadmins cannot mark issues resolved." },
       { status: 403 }
     );
   }

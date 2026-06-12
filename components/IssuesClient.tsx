@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import AppHeader from "@/components/AppHeader";
 
 const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 function periodLabel(year: number, month: number): string {
@@ -64,15 +64,15 @@ interface Issue {
 }
 
 interface PlantOption { id: number; code: string; name: string }
-interface AreaOption  { id: number; code: string; name: string }
+interface AreaOption { id: number; code: string; name: string }
 
 interface IssuesClientProps {
-  isAdmin:        boolean;
-  isSuperadmin:   boolean;
-  isOperational:  boolean;
-  plants:         PlantOption[];
-  areas:          AreaOption[];
-  adminPlantId:   number | null;
+  isAdmin: boolean;
+  isSuperadmin: boolean;
+  isOperational: boolean;
+  plants: PlantOption[];
+  areas: AreaOption[];
+  adminPlantId: number | null;
 }
 
 const selClass =
@@ -206,16 +206,16 @@ export default function IssuesClient({
   areas,
   adminPlantId,
 }: IssuesClientProps) {
-  const [issues, setIssues]       = useState<Issue[]>([]);
-  const [total, setTotal]         = useState(0);
-  const [page, setPage]           = useState(1);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [status,  setStatus]  = useState<"open" | "resolved" | "all">("open");
+  const [status, setStatus] = useState<"open" | "resolved" | "all">("open");
   const [plantId, setPlantId] = useState<string>("");
-  const [areaId,  setAreaId]  = useState<string>("");
+  const [areaId, setAreaId] = useState<string>("");
 
   const [resolveTarget, setResolveTarget] = useState<Issue | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -226,7 +226,7 @@ export default function IssuesClient({
       setError(null);
       const params = new URLSearchParams({ status: s, page: String(p), pageSize: "50" });
       if (pid) params.set("plantId", pid);
-      if (aid) params.set("areaId",  aid);
+      if (aid) params.set("areaId", aid);
       try {
         const res = await fetch(`/api/issues?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -265,7 +265,7 @@ export default function IssuesClient({
   }
 
   const showPlantFilter = isSuperadmin;
-  const showCapturedBy  = isAdmin || isSuperadmin;
+  const showCapturedBy = isAdmin || isSuperadmin;
 
   return (
     <div className="flex flex-col min-h-screen bg-app-bg">
@@ -342,7 +342,7 @@ export default function IssuesClient({
                     {showCapturedBy && <th className={thClass}>Resolved By</th>}
                     {showCapturedBy && <th className={thClass}>Resolved At</th>}
                     {showCapturedBy && <th className={thClass}>Resolution Note</th>}
-                    {isOperational && <th className={`${thClass} text-center border-r-0`}>Action</th>}
+                    {!isSuperadmin && <th className={`${thClass} text-center border-r-0`}>Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -416,7 +416,7 @@ export default function IssuesClient({
                             <Truncated text={iss.resolutionNote} />
                           </td>
                         )}
-                        {isOperational && (
+                        {!isSuperadmin && (
                           <td className={`${tdBase} text-center border-r-0`}>
                             {iss.canMarkResolved ? (
                               <button
