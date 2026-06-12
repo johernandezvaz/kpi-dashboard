@@ -12,6 +12,8 @@ import type {
 
 interface DetailChartPanelProps {
   plantCode: string;
+  year: number;
+  month: number;
   generalSeries: TrendPoint[];
   generalKey: string;
   pageLabel: string;
@@ -38,6 +40,8 @@ const thClass =
 
 export default function DetailChartPanel({
   plantCode,
+  year,
+  month,
   generalSeries,
   generalKey,
   pageLabel,
@@ -65,7 +69,9 @@ export default function DetailChartPanel({
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/metric-history?plant=${encodeURIComponent(plantCode)}&metric_id=${encodeURIComponent(metricId)}`
+        `/api/metric-history?plant=${encodeURIComponent(plantCode)}` +
+        `&metric_id=${encodeURIComponent(metricId)}` +
+        `&year=${year}&month=${month}`
       );
       if (!res.ok) throw new Error("API error");
       const data = await res.json();

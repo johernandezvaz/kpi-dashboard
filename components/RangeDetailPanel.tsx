@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MetricEvolutionChart from "@/components/MetricEvolutionChart";
+import type { MetricHistoryPoint } from "@/lib/scorecard";
 
 const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -55,9 +57,11 @@ export default function RangeDetailPanel({ apiUrl, extraColumnHeader }: RangeDet
   const [monthSlots, setMonthSlots] = useState<MonthSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setSelectedId(null);
     fetch(apiUrl)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -96,6 +100,25 @@ export default function RangeDetailPanel({ apiUrl, extraColumnHeader }: RangeDet
     );
   }
 
+  function handleRowClick(metricId: string) {
+    setSelectedId((prev) => (prev === metricId ? null : metricId));
+  }
+
+  const multiYear = monthSlots.some((s) => s.year !== monthSlots[0]?.year);
+
+  const selectedMetric = selectedId ? metrics.find((m) => m.metricId === selectedId) ?? null : null;
+
+  const chartPoints: MetricHistoryPoint[] | null = selectedMetric
+    ? selectedMetric.months.map((mc) => ({
+        label: multiYear
+          ? `${MONTH_ABBR[mc.month - 1]} ${String(mc.year).slice(2)}`
+          : MONTH_ABBR[mc.month - 1],
+        result_value: mc.value,
+        yellow_limit: mc.yellowLimit,
+        green_limit: mc.greenLimit,
+      }))
+    : null;
+
   return (
     <div className="overflow-auto">
       <table className="w-full border-collapse text-[0.78rem]" aria-label="Range metric detail">
@@ -119,9 +142,19 @@ export default function RangeDetailPanel({ apiUrl, extraColumnHeader }: RangeDet
         </thead>
         <tbody>
           {metrics.map((m, i) => {
-            const rowBg = i % 2 === 1 ? "bg-app-surface-alt" : "bg-app-surface";
+            const isSelected = selectedId === m.metricId;
+            const rowBg = isSelected
+              ? "bg-brand-blue/10"
+              : i % 2 === 1
+              ? "bg-app-surface-alt"
+              : "bg-app-surface";
             return (
-              <tr key={m.metricId} className={`${rowBg} border-b border-b-brand-navy/10`}>
+              <tr
+                key={m.metricId}
+                className={`${rowBg} border-b border-b-brand-navy/10 cursor-pointer hover:bg-brand-blue/5 transition-colors duration-75 ${isSelected ? "ring-1 ring-inset ring-brand-blue/30" : ""}`}
+                onClick={() => handleRowClick(m.metricId)}
+                title="Click to view metric chart"
+              >
                 {extraColumnHeader && (
                   <td className="py-[0.4rem] px-2 text-[0.72rem] font-semibold text-brand-navy whitespace-nowrap border-r border-r-brand-navy/10">
                     {m.extraLabel ?? "—"}
@@ -165,11 +198,19 @@ export default function RangeDetailPanel({ apiUrl, extraColumnHeader }: RangeDet
           })}
         </tbody>
       </table>
-      <div className="px-4 py-2 border-t border-t-brand-navy/15 bg-app-surface-2">
+      <div className="px-4 py-2 border-t border-t-brand-navy/15 bg-app-surface-2 flex items-center gap-3">
         <span className="text-[0.72rem] text-app-muted">
           {metrics.length} metric{metrics.length !== 1 ? "s" : ""} · {monthSlots.length} month{monthSlots.length !== 1 ? "s" : ""}
         </span>
+        {selectedMetric && (
+          <span className="text-[0.72rem] font-semibold text-brand-blue truncate">
+            {selectedMetric.name}
+          </span>
+        )}
       </div>
+      {selectedMetric && chartPoints && (
+        <MetricEvolutionChart metricName={selectedMetric.name} points={chartPoints} />
+      )}
     </div>
   );
 }

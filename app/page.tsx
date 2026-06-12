@@ -167,10 +167,19 @@ function ScorecardPageContent() {
         const rawMode  = searchParams.get("mode") as ViewMode | null;
 
         const initPlant  = dbPlants.find((p) => p.id === rawPlant)?.id ?? dbPlants[0]?.id ?? "";
+        const todayYear  = now.getFullYear();
+        const todayMonth = now.getMonth() + 1;
+
         const parsedYear  = rawYear  ? parseInt(rawYear, 10)  : NaN;
         const parsedMonth = rawMonth ? parseInt(rawMonth, 10) : NaN;
-        const initYear   = uniqueYears.includes(parsedYear)   ? parsedYear  : uniqueYears[0]  ?? 0;
-        const initMonth  = uniqueMonths.includes(parsedMonth) ? parsedMonth : uniqueMonths[0] ?? 0;
+
+        const initYear = uniqueYears.includes(parsedYear)
+          ? parsedYear
+          : (uniqueYears.includes(todayYear) ? todayYear : uniqueYears[uniqueYears.length - 1] ?? 0);
+
+        const initMonth = uniqueMonths.includes(parsedMonth)
+          ? parsedMonth
+          : (uniqueMonths.includes(todayMonth) ? todayMonth : uniqueMonths[uniqueMonths.length - 1] ?? 0);
 
         setPlantId(initPlant);
         setYear(initYear);
@@ -288,7 +297,7 @@ function ScorecardPageContent() {
 
   return (
     <div className="flex flex-col min-h-screen pb-8">
-      <AppHeader />
+      <AppHeader plantCode={plantId} />
 
       <div className="flex items-center justify-between gap-4 flex-wrap px-6 py-3 bg-brand-gray border-b border-b-brand-navy/20">
         <div className="flex items-center gap-4 flex-wrap">

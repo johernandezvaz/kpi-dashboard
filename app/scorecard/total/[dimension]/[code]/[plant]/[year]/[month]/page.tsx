@@ -236,6 +236,8 @@ export default async function TotalDetailPage({
         <div className="rounded-xl border border-brand-navy/20 bg-app-surface shadow-sm overflow-hidden flex flex-col">
           <DetailChartPanel
             plantCode={plant}
+            year={yearNum}
+            month={monthNum}
             generalSeries={generalSeries}
             generalKey={generalKey}
             pageLabel={dimLabel}

@@ -16,10 +16,22 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const plantCode = searchParams.get("plant");
   const metricId = searchParams.get("metric_id");
+  const yearParam = searchParams.get("year");
+  const monthParam = searchParams.get("month");
 
-  if (!plantCode || !metricId) {
+  if (!plantCode || !metricId || !yearParam || !monthParam) {
     return NextResponse.json(
-      { error: "Missing required params: plant, metric_id" },
+      { error: "Missing required params: plant, metric_id, year, month" },
+      { status: 400 }
+    );
+  }
+
+  const year = parseInt(yearParam, 10);
+  const month = parseInt(monthParam, 10);
+
+  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+    return NextResponse.json(
+      { error: "Invalid year or month" },
       { status: 400 }
     );
   }
@@ -37,6 +49,7 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       );
     }
+
     const plantRes = await query<{ plant_id: string }>(
       `SELECT plant_id::text FROM plant WHERE code = $1 AND active = true`,
       [plantCode]
@@ -55,9 +68,10 @@ export async function GET(request: NextRequest) {
        FROM v_metric_history
        WHERE plant_id = $1
          AND metric_id = $2
-       ORDER BY period_date
-       LIMIT 12`,
-      [plantId, metricId]
+         AND period_date <= make_date($3::int, $4::int, 1)
+         AND period_date > make_date($3::int, $4::int, 1) - INTERVAL '12 months'
+       ORDER BY period_date`,
+      [plantId, metricId, year, month]
     );
 
     const points = res.rows.map((r) => ({

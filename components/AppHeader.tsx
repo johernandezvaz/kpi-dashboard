@@ -54,7 +54,11 @@ const NAV_LINKS: NavLink[] = [
   },
 ];
 
-export default function AppHeader() {
+interface AppHeaderProps {
+  plantCode?: string;
+}
+
+export default function AppHeader({ plantCode }: AppHeaderProps = {}) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
@@ -84,7 +88,9 @@ export default function AppHeader() {
             className="h-10 w-auto object-contain"
             priority
           />
-          <h1 className="text-xl font-bold text-white tracking-[-0.01em]">CDI DTC</h1>
+          <h1 className="text-xl font-bold text-white tracking-[-0.01em]">
+            {plantCode === "CHI" ? "CDI DTCh" : "CDI"}
+          </h1>
         </Link>
       </div>
 
@@ -93,11 +99,10 @@ export default function AppHeader() {
           <Link
             key={link.path}
             href={link.path}
-            className={`px-3 py-1 rounded text-xs font-semibold text-white border transition-colors whitespace-nowrap ${
-              isActive(link.path)
+            className={`px-3 py-1 rounded text-xs font-semibold text-white border transition-colors whitespace-nowrap ${isActive(link.path)
                 ? "bg-white/15 border-white/50"
                 : "border-white/30 hover:bg-white/10"
-            }`}
+              }`}
           >
             {link.label}
           </Link>
