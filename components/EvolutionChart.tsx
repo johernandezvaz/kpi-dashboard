@@ -11,6 +11,9 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { TrendPoint } from "@/lib/scorecard";
+import { linearRegression } from "@/lib/regression";
+import { TrendArrow } from "@/components/MetricEvolutionChart";
+import Smiley from "@/components/Smiley";
 
 interface EvolutionChartProps {
   series: TrendPoint[];
@@ -39,11 +42,26 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export default function EvolutionChart({ series, cellKey }: EvolutionChartProps) {
+  const values = series.map((p) => p.value);
+  const avgValue = values.length > 0
+    ? values.reduce((a, b) => a + b, 0) / values.length
+    : 0;
+  const generalColor: "red" | "yellow" | "green" | "neutral" =
+    values.length === 0 ? "neutral" :
+    avgValue >= 75 ? "green" :
+    avgValue >= 60 ? "yellow" :
+                     "red";
+  const { slope } = linearRegression(values);
+
   return (
     <div className="px-5 pb-5 pt-4 border-t border-t-brand-navy/15 shrink-0">
-      <p className="text-[0.7rem] font-bold uppercase tracking-[0.08em] text-app-muted mb-3">
-        Evolution
-      </p>
+      <div className="flex items-center gap-2 mb-3">
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.08em] text-app-muted flex-1">
+          Evolution
+        </p>
+        <TrendArrow slope={slope} higherIsBetter={true} />
+        <Smiley state={generalColor} />
+      </div>
 
       <div style={{ height: 200 }}>
         <ResponsiveContainer key={cellKey} width="100%" height={200}>

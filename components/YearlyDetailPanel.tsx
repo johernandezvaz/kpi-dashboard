@@ -196,7 +196,7 @@ export default function YearlyDetailPanel({ apiUrl, extraColumnHeader }: YearlyD
         )}
       </div>
       {selectedMetric && chartPoints && (
-        <MetricEvolutionChart metricName={selectedMetric.name} points={chartPoints} />
+        <MetricEvolutionChart metricName={selectedMetric.name} points={chartPoints} higherIsBetter={selectedMetric.higherIsBetter} cumplimientoColor={selectedMetric.yearly.color as "red" | "yellow" | "green" | "neutral"} />
       )}
     </div>
   );

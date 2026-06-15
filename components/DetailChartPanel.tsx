@@ -50,11 +50,13 @@ export default function DetailChartPanel({
 }: DetailChartPanelProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedHigherIsBetter, setSelectedHigherIsBetter] = useState<boolean>(true);
+  const [selectedColor, setSelectedColor] = useState<"red" | "yellow" | "green" | "neutral">("neutral");
   const [metricPoints, setMetricPoints] = useState<MetricHistoryPoint[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
-  async function handleRowClick(metricId: string, metricName: string) {
+  async function handleRowClick(metricId: string, metricName: string, higherIsBetter: boolean, color: "red" | "yellow" | "green" | "neutral") {
     if (selectedId === metricId) {
       setSelectedId(null);
       setSelectedName(null);
@@ -64,6 +66,8 @@ export default function DetailChartPanel({
     }
     setSelectedId(metricId);
     setSelectedName(metricName);
+    setSelectedHigherIsBetter(higherIsBetter);
+    setSelectedColor(color);
     setMetricPoints(null);
     setFetchError(false);
     setLoading(true);
@@ -130,7 +134,7 @@ export default function DetailChartPanel({
                   <tr
                     key={m.metricId}
                     className={`${rowBg} border-b border-b-brand-navy/10 cursor-pointer hover:bg-brand-blue/5 transition-colors duration-75`}
-                    onClick={() => handleRowClick(m.metricId, m.name)}
+                    onClick={() => handleRowClick(m.metricId, m.name, m.higherIsBetter, m.color)}
                     title={isSelected ? "Click to return to General view" : "Click to view metric history"}
                   >
                     {extraColumnHeader && (
@@ -209,7 +213,7 @@ export default function DetailChartPanel({
           Could not load metric history.
         </div>
       ) : metricPoints !== null && metricPoints.length > 0 ? (
-        <MetricEvolutionChart metricName={selectedName ?? ""} points={metricPoints} />
+        <MetricEvolutionChart metricName={selectedName ?? ""} points={metricPoints} higherIsBetter={selectedHigherIsBetter} cumplimientoColor={selectedColor} />
       ) : (
         <div className="px-5 py-4 border-t border-t-brand-navy/15 flex items-center justify-center text-[0.8rem] text-app-muted">
           No historical data for this metric.

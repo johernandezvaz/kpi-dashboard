@@ -11,10 +11,13 @@ import {
 } from "recharts";
 import type { MetricHistoryPoint } from "@/lib/scorecard";
 import { linearRegression } from "@/lib/regression";
+import Smiley from "@/components/Smiley";
 
 interface MetricEvolutionChartProps {
   metricName: string;
   points: MetricHistoryPoint[];
+  higherIsBetter: boolean;
+  cumplimientoColor: "red" | "yellow" | "green" | "neutral";
 }
 
 interface TooltipPayload {
@@ -50,25 +53,26 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-function TrendArrow({ slope }: { slope: number }) {
-  const nonZeroPoints = slope !== 0;
-  if (!nonZeroPoints || Math.abs(slope) < 0.001) {
+export function TrendArrow({ slope, higherIsBetter }: { slope: number; higherIsBetter: boolean }) {
+  if (Math.abs(slope) < 0.001) {
     return (
       <span className="text-app-muted text-lg leading-none" title="Flat trend">
         →
       </span>
     );
   }
-  if (slope > 0) {
-    return (
-      <span className="text-scorecard-green text-lg leading-none" title="Upward trend">
-        ↑
-      </span>
-    );
-  }
+
+  const isImproving =
+    (higherIsBetter && slope > 0) ||
+    (!higherIsBetter && slope < 0);
+
+  const arrow = slope > 0 ? "↑" : "↓";
+  const colorClass = isImproving ? "text-scorecard-green" : "text-scorecard-red";
+  const titleText = isImproving ? "Improving trend" : "Worsening trend";
+
   return (
-    <span className="text-scorecard-red text-lg leading-none" title="Downward trend">
-      ↓
+    <span className={`${colorClass} text-lg leading-none`} title={titleText}>
+      {arrow}
     </span>
   );
 }
@@ -76,6 +80,8 @@ function TrendArrow({ slope }: { slope: number }) {
 export default function MetricEvolutionChart({
   metricName,
   points,
+  higherIsBetter,
+  cumplimientoColor,
 }: MetricEvolutionChartProps) {
   const resultVals = points.map((p) => p.result_value);
   const { slope, trendValues } = linearRegression(resultVals);
@@ -94,12 +100,8 @@ export default function MetricEvolutionChart({
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.08em] text-app-muted truncate flex-1">
           {metricName}
         </p>
-        <TrendArrow slope={slope} />
-        <span
-          id="metric-trend-emoji"
-          data-placeholder="emoji"
-          className="ml-0.5 text-base leading-none"
-        />
+        <TrendArrow slope={slope} higherIsBetter={higherIsBetter} />
+        <Smiley state={cumplimientoColor} />
       </div>
 
       <div style={{ height: 200 }}>

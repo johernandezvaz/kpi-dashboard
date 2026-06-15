@@ -209,7 +209,7 @@ export default function RangeDetailPanel({ apiUrl, extraColumnHeader }: RangeDet
         )}
       </div>
       {selectedMetric && chartPoints && (
-        <MetricEvolutionChart metricName={selectedMetric.name} points={chartPoints} />
+        <MetricEvolutionChart metricName={selectedMetric.name} points={chartPoints} higherIsBetter={selectedMetric.higherIsBetter} cumplimientoColor={selectedMetric.range.color as "red" | "yellow" | "green" | "neutral"} />
       )}
     </div>
   );
