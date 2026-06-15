@@ -2,6 +2,9 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { pdf } from "@react-pdf/renderer";
+import MetricsPDFDocument from "@/components/MetricsPDFDocument";
 import PeriodSelector from "@/components/PeriodSelector";
 import type { Plant, Month } from "@/components/PeriodSelector";
 import OverallBadge from "@/components/OverallBadge";
@@ -29,6 +32,14 @@ const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 
 function ml(m: number): string {
   return MONTH_NAMES.find((x) => x.value === m)?.label ?? String(m);
+}
+
+function getMonthName(month: number): string {
+  const names = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  return names[month - 1] ?? "";
 }
 
 type ViewMode = "month" | "year" | "range";
@@ -136,6 +147,48 @@ function ScorecardPageContent() {
   const [error,   setError]   = useState<string | null>(null);
 
   const [infoOpen, setInfoOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const { data: session } = useSession();
+
+  async function handleExportPdf() {
+    if (!plantId || !year || !month) return;
+    if (mode !== "month") {
+      alert("PDF export is only available in Month view.");
+      return;
+    }
+    setExporting(true);
+    try {
+      const url = `/api/metrics-pdf-data?plant=${encodeURIComponent(plantId)}&year=${year}&month=${month}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error((errBody as { error?: string }).error || "Failed to fetch metrics data");
+      }
+      const data = await res.json();
+
+      // Generate PDF blob via @react-pdf/renderer
+      const blob = await pdf(
+        <MetricsPDFDocument data={data} />
+      ).toBlob();
+
+      const filename = `METRICS_${data.plant.name}_${getMonthName(data.month)}_${data.year}.pdf`;
+
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Export PDF error:", err);
+      alert(`Could not export PDF: ${err instanceof Error ? err.message : "unknown error"}`);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const [thresholds, setThresholds] = useState<{ yellowMin: number; greenMin: number }>({ yellowMin: 0.6, greenMin: 0.75 });
 
@@ -348,6 +401,25 @@ function ScorecardPageContent() {
           )}
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          {session?.user?.isAdmin && (
+            <button
+              type="button"
+              id="scorecard-export-pdf-btn"
+              title="Export metrics as PDF"
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="flex items-center justify-center w-7 h-7 rounded-full border border-brand-navy/25 text-brand-navy/60 hover:text-brand-blue hover:border-brand-blue/50 hover:bg-brand-blue/8 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Export metrics as PDF"
+            >
+              {exporting ? (
+                <span className="w-3 h-3 rounded-full border-2 border-brand-blue border-t-transparent animate-spin" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 2v9m0 0l-3-3m3 3l3-3M3 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+          )}
           <button
             type="button"
             id="scorecard-info-btn"

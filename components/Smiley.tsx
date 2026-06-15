@@ -10,21 +10,31 @@ interface SmileyProps {
 export default function Smiley({ state, title }: SmileyProps) {
   if (state === "neutral") return null;
 
-  const color =
-    state === "red"    ? "#d64545" :
-    state === "yellow" ? "#d4a017" :
-                         "#4a9d6f";
+  const fillColor =
+    state === "red" ? "#e85a5a" :
+      state === "yellow" ? "#f5c518" :
+        "#5cb87a";
+
+  const strokeColor =
+    state === "red" ? "#a83838" :
+      state === "yellow" ? "#a8821a" :
+        "#2e7044";
+
+  const featureColor =
+    state === "red" ? "#2a1010" :
+      state === "yellow" ? "#2a2010" :
+        "#10261a";
 
   const mouth =
-    state === "red"    ? "M 6 16 Q 12 11 18 16" :
-    state === "yellow" ? "M 6 15 L 18 15"        :
-                         "M 6 13 Q 12 19 18 13";
+    state === "red" ? "M 7 17 Q 12 13 17 17" :
+      state === "yellow" ? "M 7 16 L 17 16" :
+        "M 7 14 Q 12 19 17 14";
 
   const titleText =
     title ??
-    (state === "red"    ? "Off-target"   :
-     state === "yellow" ? "At risk"      :
-                          "On target");
+    (state === "red" ? "Off-target" :
+      state === "yellow" ? "At risk" :
+        "On target");
 
   return (
     <svg
@@ -35,10 +45,10 @@ export default function Smiley({ state, title }: SmileyProps) {
       aria-label={titleText}
     >
       <title>{titleText}</title>
-      <circle cx="12" cy="12" r="10" fill="none" stroke={color} strokeWidth="1.8" />
-      <ellipse cx="8.5" cy="10" rx="1.2" ry="1.8" fill={color} />
-      <ellipse cx="15.5" cy="10" rx="1.2" ry="1.8" fill={color} />
-      <path d={mouth} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="10" fill={fillColor} stroke={strokeColor} strokeWidth="1" />
+      <ellipse cx="9" cy="10" rx="1.1" ry="1.7" fill={featureColor} />
+      <ellipse cx="15" cy="10" rx="1.1" ry="1.7" fill={featureColor} />
+      <path d={mouth} fill="none" stroke={featureColor} strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
