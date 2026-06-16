@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 4559",
+    "dev": "next dev --port 4554",
     "build": "next build",
-    "start": "next start --port 4559",
-    "serve": "next build && next start --port 4559",
+    "start": "next start --port 4554",
+    "serve": "next build && next start --port 4554",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
