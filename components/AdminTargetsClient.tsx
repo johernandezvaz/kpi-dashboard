@@ -107,15 +107,6 @@ export default function AdminTargetsClient({ plant, initialMetrics, defaultYear,
     loadTargets(year, month);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const scheduleSave = useCallback((metricId: number, yellowDraft: string, greenDraft: string) => {
-    if (saveTimers.current[metricId]) {
-      clearTimeout(saveTimers.current[metricId]);
-    }
-    saveTimers.current[metricId] = setTimeout(() => {
-      saveRow(metricId, yellowDraft, greenDraft);
-    }, 700);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const saveRow = useCallback(async (metricId: number, yellowDraft: string, greenDraft: string) => {
     const yellow = parseFloat(yellowDraft);
     const green = parseFloat(greenDraft);
@@ -168,6 +159,15 @@ export default function AdminTargetsClient({ plant, initialMetrics, defaultYear,
       );
     }
   }, [year, month]);
+
+  const scheduleSave = useCallback((metricId: number, yellowDraft: string, greenDraft: string) => {
+    if (saveTimers.current[metricId]) {
+      clearTimeout(saveTimers.current[metricId]);
+    }
+    saveTimers.current[metricId] = setTimeout(() => {
+      saveRow(metricId, yellowDraft, greenDraft);
+    }, 700);
+  }, [saveRow]);
 
   const handleFieldChange = (metricId: number, field: "_yellowDraft" | "_greenDraft", value: string) => {
     let updatedRow: TargetRow | undefined;
