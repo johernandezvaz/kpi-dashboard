@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Esquema Scorecard KPI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: título → diagrama ER → tablas → vistas → llaves foráneas. Monocromo. */
+:root{
+  --bg:#ffffff; --surface:#ffffff; --ink:#111111; --muted:#6b6b6b; --faint:#a3a3a3; --line:#e2e2e2; --edge:#b5b5b5; --hl:#111111; --hl-bg:#f2f2f2;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111111; --surface:#161616; --ink:#ededed; --muted:#9a9a9a; --faint:#5e5e5e; --line:#2a2a2a; --edge:#4a4a4a; --hl:#ededed; --hl-bg:#222222; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111111; --surface:#161616; --ink:#ededed; --muted:#9a9a9a; --faint:#5e5e5e; --line:#2a2a2a; --edge:#4a4a4a; --hl:#ededed; --hl-bg:#222222; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:48px}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+h1{font-size:24px}
+h2{font-size:16px}
+h3{font-family:var(--font-mono);font-size:14px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sub{color:var(--muted);font-size:13px;font-family:var(--font-mono)}
+.sec{display:flex;flex-direction:column;gap:14px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tools{display:flex;gap:4px}
+.btn{font:500 12px var(--font-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 9px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+
+.board{position:relative;border:1px solid var(--line);border-radius:4px;overflow:auto;background:var(--bg)}
+.sizer{position:relative}
+.canvas{position:absolute;left:0;top:0;transform-origin:0 0}
+.canvas svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+svg .e path{fill:none;stroke:var(--edge);stroke-width:1}
+svg.over .e{display:none}
+svg.over .e.on{display:inline}
+svg.over .e.on path{stroke:var(--hl);stroke-width:1.5}
+.board.focus svg.under .e{opacity:.2}
+
+.tbl{position:absolute;width:264px;background:var(--surface);border:1px solid var(--line);border-radius:3px;font-size:12px;transition:opacity .12s}
+.tbl-h{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:grab;touch-action:none;user-select:none;border-bottom:1px solid var(--line)}
+.tbl-h:active{cursor:grabbing}
+.tbl-h .tn{font:600 12.5px var(--font-mono);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rows{position:relative;padding:2px 0}
+.r{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:6px;align-items:center;height:21px;padding:0 10px;font-family:var(--font-mono)}
+.r .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .ct{color:var(--muted);font-size:11px;white-space:nowrap}
+.r.hl{background:var(--hl-bg)}
+.k{font:600 9px var(--font-mono);letter-spacing:.03em;color:var(--faint)}
+.k.pk,.k.fk{color:var(--ink)}
+.board.focus .tbl{opacity:.3}
+.board.focus .tbl.on{opacity:1}
+.tbl.on.self{border-color:var(--ink)}
+
+.list{display:flex;flex-direction:column;gap:28px}
+.di{display:flex;flex-direction:column;gap:6px;scroll-margin-top:16px;min-width:0}
+.tscroll{overflow-x:auto;min-width:0}
+table.grid{border-collapse:collapse;width:100%;font-size:12.5px;font-family:var(--font-mono)}
+table.grid th{font:500 11px var(--font-body);color:var(--muted);text-align:left;padding:5px 12px 5px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+table.grid td{padding:5px 12px 5px 0;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+table.grid td.mut{color:var(--muted)}
+.extra{font-family:var(--font-mono);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.extra span b{font-weight:500;color:var(--ink)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:4px">
+    <h1>Esquema Scorecard KPI</h1>
+    <div class="sub" id="sub"></div>
+  </header>
+
+  <section class="sec" id="er">
+    <div class="sec-head">
+      <h2>Diagrama</h2>
+      <div class="tools">
+        <button class="btn" id="zout" type="button" aria-label="Alejar">−</button>
+        <button class="btn" id="zin" type="button" aria-label="Acercar">+</button>
+        <button class="btn" id="zfit" type="button">Ajustar</button>
+        <button class="btn" id="zreset" type="button">Restablecer</button>
+      </div>
+    </div>
+    <div class="board" id="erBoard"><div class="sizer" id="erSizer"><div class="canvas" id="erCanvas">
+      <svg class="under" id="erUnder"></svg><svg class="over" id="erOver" style="z-index:5"></svg>
+    </div></div></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Tablas</h2></div>
+    <div class="list" id="tables"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Vistas</h2></div>
+    <div class="list" id="views"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Llaves foráneas</h2></div>
+    <div class="tscroll"><table class="grid" id="fkTable"></table></div>
+  </section>
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+const META = /*__META__*/;
+
+const ER_LAYOUT = [
+  ['login_event','audit_log','scorecard_threshold'],
+  ['app_user','user_plant_access','user_plant_area_access'],
+  ['plant','area','process','period'],
+  ['metric','metric_validity'],
+  ['metric_result','metric_target']
+];
+const DEL = {a:'NO ACTION',r:'RESTRICT',c:'CASCADE',n:'SET NULL',d:'SET DEFAULT'};
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tables = DATA.filter(r => r.kind === 'r');
+const views = DATA.filter(r => r.kind === 'v');
+const shortType = t => t.replace('character varying','varchar').replace('timestamp with time zone','timestamptz').replace(/^character\(/,'char(');
+const shortDefault = d => d == null ? '' : /^nextval/.test(d) ? 'serial' : d.replace(/::[a-z ]+/g,'');
+
+function keys(r){
+  const pk = new Set(), uq = new Set(), fk = {};
+  (r.constraints || []).forEach(c => {
+    if (c.type === 'p') c.cols.forEach(x => pk.add(x));
+    if (c.type === 'u') c.cols.forEach(x => uq.add(x));
+    if (c.type === 'f') c.cols.forEach((x, i) => fk[x] = {t: c.ref, c: c.refcols[i], del: c.del});
+  });
+  return {pk, uq, fk};
+}
+const KEYS = Object.fromEntries(tables.map(t => [t.name, keys(t)]));
+const FKS = [];
+tables.forEach(t => (t.constraints || []).filter(c => c.type === 'f').forEach(c =>
+  FKS.push({name: c.name, from: t.name, fromCol: c.cols[0], to: c.ref, toCol: c.refcols[0], del: c.del})));
+
+document.getElementById('sub').textContent = `PostgreSQL ${META.version} · public · ${tables.length} tablas · ${views.length} vistas · ${FKS.length} llaves foráneas`;
+
+/* ---------- Diagrama ---------- */
+const board = document.getElementById('erBoard'), sizer = document.getElementById('erSizer'), canvas = document.getElementById('erCanvas');
+const er = {scale: 1, W: 0, H: 0, manual: false};
+er.apply = () => {
+  canvas.style.width = er.W + 'px'; canvas.style.height = er.H + 'px'; canvas.style.transform = `scale(${er.scale})`;
+  sizer.style.width = er.W * er.scale + 'px'; sizer.style.height = er.H * er.scale + 'px';
+};
+er.fit = () => { er.scale = Math.max(.5, Math.min(1, (board.clientWidth - 2) / er.W)); er.apply(); };
+
+const COLW = 264, GAP = 110, VGAP = 30, PAD = 24;
+const cards = {};
+tables.forEach(t => {
+  const k = KEYS[t.name];
+  const el = document.createElement('div');
+  el.className = 'tbl';
+  el.innerHTML = `<div class="tbl-h"><span class="tn">${t.name}</span></div>
+    <div class="rows">${t.columns.map(c => {
+      const b = k.pk.has(c.n) ? '<span class="k pk">PK</span>' : k.fk[c.n] ? '<span class="k fk">FK</span>' : k.uq.has(c.n) ? '<span class="k">UQ</span>' : '<span class="k"></span>';
+      return `<div class="r" data-col="${c.n}">${b}<span class="cn">${c.n}</span><span class="ct">${esc(shortType(c.t))}</span></div>`;
+    }).join('')}</div>`;
+  canvas.appendChild(el);
+  cards[t.name] = el;
+});
+const POS_KEY = 'kpi-erd-pos-v2';
+function defaultLayout(){
+  ER_LAYOUT.forEach((col, i) => {
+    let y = PAD;
+    col.forEach(n => { const c = cards[n]; c.style.left = PAD + i*(COLW+GAP) + 'px'; c.style.top = y + 'px'; y += c.offsetHeight + VGAP; });
+  });
+}
+function savePos(){ try { localStorage.setItem(POS_KEY, JSON.stringify(Object.fromEntries(Object.entries(cards).map(([n,c]) => [n,[c.offsetLeft,c.offsetTop]])))); } catch(e){} }
+function loadPos(){
+  try { const p = JSON.parse(localStorage.getItem(POS_KEY) || 'null'); if (!p) return false;
+    Object.entries(p).forEach(([n,[x,y]]) => { if (cards[n]) { cards[n].style.left = x+'px'; cards[n].style.top = y+'px'; } }); return true;
+  } catch(e){ return false; }
+}
+function extent(){
+  let W = 0, H = 0;
+  Object.values(cards).forEach(c => { W = Math.max(W, c.offsetLeft + c.offsetWidth); H = Math.max(H, c.offsetTop + c.offsetHeight); });
+  er.W = W + PAD; er.H = H + PAD;
+}
+function anchor(card, col, side){
+  const row = card.querySelector(`[data-col="${col}"]`);
+  return {x: card.offsetLeft + (side > 0 ? card.offsetWidth : 0), y: card.offsetTop + row.parentNode.offsetTop + row.offsetTop + row.offsetHeight/2};
+}
+function curve(a, b, ss, ds){
+  const k = ss === ds ? 44 + Math.abs(b.y - a.y) * .12 : Math.max(44, Math.abs(b.x - a.x) / 2);
+  return `M${a.x} ${a.y} C${a.x + ss*k} ${a.y} ${b.x + ds*k} ${b.y} ${b.x} ${b.y}`;
+}
+function edges(){
+  const html = FKS.map((f, i) => {
+    const s = cards[f.from], d = cards[f.to];
+    const sc = s.offsetLeft + s.offsetWidth/2, dc = d.offsetLeft + d.offsetWidth/2;
+    const [ss, ds] = Math.abs(sc - dc) < COLW * .6 ? [1, 1] : dc > sc ? [1, -1] : [-1, 1];
+    const a = anchor(s, f.fromCol, ss), b = anchor(d, f.toCol, ds);
+    const mk = `M${a.x+ss*12} ${a.y} L${a.x} ${a.y-5} M${a.x+ss*12} ${a.y} L${a.x} ${a.y+5} M${b.x+ds*6} ${b.y-5} V${b.y+5}`;
+    return `<g class="e" data-i="${i}"><path d="${curve(a,b,ss,ds)}"/><path d="${mk}"/></g>`;
+  }).join('');
+  ['erUnder','erOver'].forEach(id => { const s = document.getElementById(id); s.setAttribute('width', er.W); s.setAttribute('height', er.H); s.innerHTML = html; });
+}
+function focus(name){
+  board.classList.toggle('focus', !!name);
+  canvas.querySelectorAll('.tbl').forEach(c => c.classList.remove('on','self'));
+  canvas.querySelectorAll('.r.hl').forEach(r => r.classList.remove('hl'));
+  canvas.querySelectorAll('#erOver .e').forEach(e => e.classList.remove('on'));
+  if (!name) return;
+  cards[name].classList.add('on','self');
+  FKS.forEach((f, i) => {
+    if (f.from !== name && f.to !== name) return;
+    canvas.querySelector(`#erOver .e[data-i="${i}"]`).classList.add('on');
+    cards[f.from].classList.add('on'); cards[f.to].classList.add('on');
+    cards[f.from].querySelector(`[data-col="${f.fromCol}"]`).classList.add('hl');
+    cards[f.to].querySelector(`[data-col="${f.toCol}"]`).classList.add('hl');
+  });
+}
+let drag = null;
+Object.entries(cards).forEach(([n, c]) => {
+  c.addEventListener('mouseenter', () => { if (!drag) focus(n); });
+  c.addEventListener('mouseleave', () => { if (!drag) focus(null); });
+  const h = c.querySelector('.tbl-h');
+  h.addEventListener('pointerdown', e => { e.preventDefault(); h.setPointerCapture(e.pointerId); drag = {sx: e.clientX, sy: e.clientY, ox: c.offsetLeft, oy: c.offsetTop}; focus(n); });
+  h.addEventListener('pointermove', e => {
+    if (!drag) return;
+    c.style.left = Math.max(0, drag.ox + (e.clientX - drag.sx) / er.scale) + 'px';
+    c.style.top = Math.max(0, drag.oy + (e.clientY - drag.sy) / er.scale) + 'px';
+    edges(); focus(n);
+  });
+  const end = () => { if (!drag) return; drag = null; extent(); er.apply(); edges(); focus(n); savePos(); };
+  h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+});
+function init(fresh){ if (fresh || !loadPos()) defaultLayout(); extent(); er.manual ? er.apply() : er.fit(); edges(); }
+document.getElementById('zin').onclick = () => { er.manual = true; er.scale = Math.min(1.6, er.scale + .1); er.apply(); };
+document.getElementById('zout').onclick = () => { er.manual = true; er.scale = Math.max(.35, er.scale - .1); er.apply(); };
+document.getElementById('zfit').onclick = () => { er.manual = false; er.fit(); };
+document.getElementById('zreset').onclick = () => { try { localStorage.removeItem(POS_KEY); } catch(e){} init(true); };
+
+/* ---------- Tablas ---------- */
+document.getElementById('tables').innerHTML = tables.map(t => {
+  const k = KEYS[t.name];
+  const rows = t.columns.map(c => `<tr><td>${c.n}</td><td class="mut">${esc(shortType(c.t))}</td><td>${[k.pk.has(c.n)&&'PK',k.fk[c.n]&&'FK',k.uq.has(c.n)&&'UQ'].filter(Boolean).join(' ')}</td><td class="mut">${c.nn ? 'NOT NULL' : ''}</td><td class="mut">${esc(c.g ? 'generada' : shortDefault(c.d))}</td><td class="mut">${k.fk[c.n] ? `${k.fk[c.n].t}.${k.fk[c.n].c}` : ''}</td></tr>`).join('');
+  const extra = [
+    ...(t.constraints||[]).filter(c => c.type === 'u' && c.cols.length > 1).map(c => `<span><b>UNIQUE</b> (${c.cols.join(', ')})</span>`),
+    ...(t.constraints||[]).filter(c => c.type === 'c').map(c => `<span><b>${esc(c.name)}</b> ${esc(c.def)}</span>`),
+    ...(t.indexes||[]).filter(i => !/_pkey$|_key$/.test(i.name)).map(i => `<span><b>${esc(i.name)}</b> ${esc(i.def.replace(/^CREATE (UNIQUE )?INDEX \S+ ON public\.\S+ USING /,'$1'))}</span>`),
+    ...(t.triggers||[]).map(g => `<span><b>${esc(g.name)}</b> trigger → trg_audit()</span>`)
+  ];
+  return `<div class="di" id="t-${t.name}"><h3>${t.name}</h3>
+    <div class="tscroll"><table class="grid"><thead><tr><th>Columna</th><th>Tipo</th><th>Clave</th><th>Nulo</th><th>Default</th><th>Referencia</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${extra.length ? `<div class="extra">${extra.join('')}</div>` : ''}</div>`;
+}).join('');
+
+/* ---------- Vistas ---------- */
+document.getElementById('views').innerHTML = views.map(v => `<div class="di" id="t-${v.name}"><h3>${v.name}</h3>
+  <div class="tscroll"><table class="grid"><thead><tr><th>Columna</th><th>Tipo</th></tr></thead><tbody>${v.columns.map(c => `<tr><td>${c.n}</td><td class="mut">${esc(shortType(c.t))}</td></tr>`).join('')}</tbody></table></div>
+  <div class="extra"><span><b>Origen</b> ${(v.deps||[]).join(', ')}</span></div></div>`).join('');
+
+/* ---------- FKs ---------- */
+document.getElementById('fkTable').innerHTML = '<thead><tr><th>Origen</th><th>Destino</th><th>On delete</th><th>Restricción</th></tr></thead><tbody>' +
+  FKS.slice().sort((a,b) => a.from.localeCompare(b.from) || a.fromCol.localeCompare(b.fromCol)).map(f =>
+    `<tr><td>${f.from}.${f.fromCol}</td><td>${f.to}.${f.toCol}</td><td class="mut">${DEL[f.del]}</td><td class="mut">${f.name}</td></tr>`).join('') + '</tbody>';
+
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => init(false));
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!er.manual) er.fit(); }, 120); });
+</script>
+</body>
+</html>

@@ -127,7 +127,6 @@ export default async function AdminMetricsPage() {
     metrics = res.rows;
   }
 
-  // Fetch active metadata dropdown lists
   const [plantsRes, processesRes, areasRes, usersRes] = await Promise.all([
     query<DbPlant>("SELECT plant_id, code, name FROM plant WHERE active = true ORDER BY code"),
     query<DbProcess>("SELECT process_id, code, name FROM process WHERE active = true ORDER BY sort_order"),
