@@ -148,7 +148,7 @@ const FKS = [];
 tables.forEach(t => (t.constraints || []).filter(c => c.type === 'f').forEach(c =>
   FKS.push({name: c.name, from: t.name, fromCol: c.cols[0], to: c.ref, toCol: c.refcols[0], del: c.del})));
 
-document.getElementById('sub').textContent = `PostgreSQL ${META.version} · public · ${tables.length} tablas · ${views.length} vistas · ${FKS.length} llaves foráneas`;
+document.getElementById('sub').textContent = ``;
 
 /* ---------- Diagrama ---------- */
 const board = document.getElementById('erBoard'), sizer = document.getElementById('erSizer'), canvas = document.getElementById('erCanvas');
